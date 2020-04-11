@@ -8,213 +8,351 @@ import itertools
 import pickle
 
 
-
-
 #######################
 # ---- Run Model ---- #
 #######################
 
-def run_model(beta_j, eps, f, days_in_season, alpha=alpha, beta_home = beta_home, sigma=sigma, delta=delta, gama=gama,
-              population_size=population_size, C=C_calibration, psi=psi, rho=hospitalizations, new=new):
-    """Receives all model's data and parameters, runs it for a season and returns the results"""
-    # Expand data
-    beta_j = expand_partial_array(mapping_dic=age_ga_dict,
-                                        array_to_expand=beta_j, size=len(GA))  # fitting beta_j size to (180X1)
-    # population size in each area
-    init_region_pop = shrink_array_sum(mapping_dic=region_dict,array_to_shrink=population_size)
-    # Initialize lists to save the states throughout the time steps
-    S, E, Ie, Is, Ia, R, H = [], [], [], [], [], [], []
+def run_model(
+		beta_j,
+		eps,
+		f,
+		days_in_season,
+		alpha=alpha,
+		beta_home = beta_home,
+		sigma=sigma,
+		delta=delta,
+		gama=gama,
+		population_size=population_size,
+		C=C_calibration,
+		psi=psi,
+		rho=hospitalizations,
+		new=new
+	):
+	"""
+	Receives all model's data and parameters, runs it for a season and returns
+	the results.
+	:param beta_j:
+	:param eps:
+	:param f:
+	:param days_in_season:
+	:param alpha:
+	:param beta_home:
+	:param sigma:
+	:param delta:
+	:param gama:
+	:param population_size:
+	:param C:
+	:param psi:
+	:param rho:
+	:param new:
+	:return:
+	"""
 
-    # Initialize a list for the newly infected
-    new_I, new_Is = [], []
+	# Expand data - fitting beta_j size to (180X1)/
+	beta_j = expand_partial_array(
+		mapping_dic=age_ga_dict,
+		array_to_expand=beta_j,
+		size=len(GA)
+	)
+	# population size in each area
+	init_region_pop = shrink_array_sum(
+		mapping_dic=region_dict,
+		array_to_shrink=population_size
+	)
 
-    # Initialize a list fot the lambdas
-    L = []
+	# Initialize lists to save the states throughout the time steps
+	S, E, Ie, Is, Ia, R, H = [], [], [], [], [], [], []
 
-    # Run the model
-    for t in range(days_in_season):
-        # If first iteration - initialize all states
-        if t % days_in_season == 0:
-            # Initialize S_0 to population size of each age-group
-            S.append(population_size.copy())
-            # Initialize R - with only the naturally immune individuals
-            R.append(np.zeros(len(N)))
+	# Initialize a list for the newly infected
+	new_I, new_Is = [], []
 
-            # subtract R0 from S0:
-            S[-1] -= R[-1]
+	# Initialize a list fot the lambdas
+	L = []
 
-            # Initialize E  to 5*10**-4 ????
-            E.append(np.zeros(len(N)))
-            #             E[-1][:] = init_I
+	# Run the model
+	for t in range(days_in_season):
+		# If first iteration - initialize all states
+		if t % days_in_season == 0:
+			# Initialize S_0 to population size of each age-group
+			S.append(population_size.copy())
+			# Initialize R - with only the naturally immune individuals
+			R.append(np.zeros(len(N)))
 
-            # Initialize I (early) to 5*10**-4 ????
-            Ie.append(np.zeros(len(N)))
-            Ie[-1][:] = eps[t]
+			# subtract R0 from S0:
+			S[-1] -= R[-1]
 
-            # Initialize I (asymptomatic) to 5*0.5*10**-4 ????
-            Ia.append(np.zeros(len(N)))
+			# Initialize E  to 5*10**-4 ????
+			E.append(np.zeros(len(N)))
+			#             E[-1][:] = init_I
 
-            # Initialize I (symptomatic) to 5*0.5*10**-4 ????
-            Is.append(np.zeros(len(N)))
+			# Initialize I (early) to 5*10**-4 ????
+			Ie.append(np.zeros(len(N)))
+			Ie[-1][:] = eps[t]
 
-            # Subtract I_0 and A_0 from S_0
-            S[-1] -= (E[-1] + Ie[-1])
+			# Initialize I (asymptomatic) to 5*0.5*10**-4 ????
+			Ia.append(np.zeros(len(N)))
 
-            # Zero newly infected on the first day of the season
-            new_I.append(np.zeros(len(N)))
-            new_Is.append(np.zeros(len(N)))
+			# Initialize I (symptomatic) to 5*0.5*10**-4 ????
+			Is.append(np.zeros(len(N)))
 
-            # Initialize H, tracking compartment
-            H.append(np.zeros(len(N)))
+			# Subtract I_0 and A_0 from S_0
+			S[-1] -= (E[-1] + Ie[-1])
 
-        # Not a new season
+			# Zero newly infected on the first day of the season
+			new_I.append(np.zeros(len(N)))
+			new_Is.append(np.zeros(len(N)))
 
-        # Calculate beta_home factor, current S_region/N_region and expand it to mach (180X1)
-        beta_home_factor = shrink_array_sum(mapping_dic=region_dict, array_to_shrink=S[-1]) / init_region_pop
-        beta_home_factor = expand_partial_array(mapping_dic=region_ga_dict,
-                                        array_to_expand=beta_home_factor, size=len(GA))
-        # Calculate lambda (High risk symptomatic + Low risk symptomatic + Asymptomatic)
-        contact_force = calculate_force_matriceis(t=t, C=C, Ie=Ie[-1], Ia=Ia[-1], Is=Is[-1], alpha=alpha)
+			# Initialize H, tracking compartment
+			H.append(np.zeros(len(N)))
 
-        lambda_t = (beta_home * beta_home_factor * contact_force['home'] + beta_j * contact_force['out'])
+		# Not a new season
 
-        L.append(lambda_t)
-        lambda_t = expand_partial_array(mapping_dic=region_age_dict,
-                                        array_to_expand=lambda_t)  # fitting lambda_t size to (720X1)
+		# Calculate beta_home factor, current S_region/N_region and expand it
+		# to mach (180X1).
+		beta_home_factor = shrink_array_sum(
+			mapping_dic=region_dict,
+			array_to_shrink=S[-1]) \
+			/ init_region_pop
+		beta_home_factor = expand_partial_array(
+			mapping_dic=region_ga_dict,
+			array_to_expand=beta_home_factor,
+			size=len(GA)
+		)
 
-        # R(t)
-        R.append(R[-1] + gama * (Is[-1] + Ia[-1]) - eps[t])
+		# Calculate lambda (High risk symptomatic + Low risk symptomatic +
+		# Asymptomatic).
+		contact_force = calculate_force_matriceis(
+			t=t,
+			C=C,
+			Ie=Ie[-1],
+			Ia=Ia[-1],
+			Is=Is[-1],
+			alpha=alpha
+		)
 
-        # H(t)
-        H.append(rho * Is[-1] - new * H[-1])
+		lambda_t = (beta_home * beta_home_factor * contact_force['home'] +
+					beta_j * contact_force['out'])
 
-        # Is(t)
-        # Save new_Is
-        new_Is.append((1 - f) * delta * Ie[-1])
-        # Calculate new i matrix for day t
-        Is.append(Is[-1] + new_Is[-1] - gama * Is[-1])
+		L.append(lambda_t)
+		# fitting lambda_t size to (720X1)
+		lambda_t = expand_partial_array(
+			mapping_dic=region_age_dict,
+			array_to_expand=lambda_t
+		)
 
-        # Ia(t)
-        # Calculate new i matrix for day t
-        Ia.append(Ia[-1] + f * delta * Ie[-1] - gama * Ia[-1])
+		# R(t)
+		R.append(R[-1] + gama * (Is[-1] + Ia[-1]) - eps[t])
 
-        # Ie(t)
-        # Calculate new i matrix for day t
-        Ie.append(Ie[-1] + sigma * E[-1] - delta * Ie[-1])
+		# H(t)
+		H.append(rho * Is[-1] - new * H[-1])
 
-        # E(t)
-        # Calculate new e matrix for day t
-        E.append(eps[t] + E[-1] + lambda_t * S[-1] - sigma * E[-1])
+		# Is(t)
+		# Save new_Is
+		new_Is.append((1 - f) * delta * Ie[-1])
+		# Calculate new i matrix for day t
+		Is.append(Is[-1] + new_Is[-1] - gama * Is[-1])
 
-        # S(t)
-        # Save new_I
-        new_I.append(lambda_t * S[-1])
-        # Calculate current S
-        S.append(S[-1] - lambda_t * S[-1])
+		# Ia(t)
+		# Calculate new i matrix for day t
+		Ia.append(Ia[-1] + f * delta * Ie[-1] - gama * Ia[-1])
 
-    # Return the model results
-    return {'S': np.array(S), 'E': np.array(E), 'Ie': np.array(Ie), 'Ia': np.array(Ia), 'Is': np.array(Is),
-            'R': np.array(R), 'new_I': np.array(new_I), 'new_Is': np.array(new_Is), 'L': np.array(L), 'H': np.array(H)}
+		# Ie(t)
+		# Calculate new i matrix for day t
+		Ie.append(Ie[-1] + sigma * E[-1] - delta * Ie[-1])
 
-def run_sector_model(beta_j, eps, f, days_in_season, theta, is_haredi=is_haredi, alpha=alpha, beta_home = beta_home, sigma=sigma, delta=delta, gama=gama,
-              population_size=population_size, C=C_calibration, psi=psi, rho=hospitalizations, new=new):
-    """Receives all model's data and parameters, runs it for a season and returns the results"""
-    # Expand data
-    beta_j = expand_partial_array(mapping_dic=age_ga_dict,
-                                        array_to_expand=beta_j, size=len(GA))  # fitting beta_j size to (180X1)
-    # population size in each area
-    init_region_pop = shrink_array_sum(mapping_dic=region_dict,array_to_shrink=population_size)
-    # Initialize lists to save the states throughout the time steps
-    S, E, Ie, Is, Ia, R, H = [], [], [], [], [], [], []
+		# E(t)
+		# Calculate new e matrix for day t
+		E.append(eps[t] + E[-1] + lambda_t * S[-1] - sigma * E[-1])
 
-    # Initialize a list for the newly infected
-    new_I, new_Is = [], []
+		# S(t)
+		# Save new_I
+		new_I.append(lambda_t * S[-1])
+		# Calculate current S
+		S.append(S[-1] - lambda_t * S[-1])
 
-    # Initialize a list fot the lambdas
-    L = []
+	# Return the model results
+	return {
+		'S': np.array(S),
+		'E': np.array(E),
+		'Ie': np.array(Ie),
+		'Ia': np.array(Ia),
+		'Is': np.array(Is),
+		'R': np.array(R),
+		'new_I': np.array(new_I),
+		'new_Is': np.array(new_Is),
+		'L': np.array(L),
+		'H': np.array(H),
+	}
 
-    # Run the model
-    for t in range(days_in_season):
-        # If first iteration - initialize all states
-        if t % days_in_season == 0:
-            # Initialize S_0 to population size of each age-group
-            S.append(population_size.copy())
-            # Initialize R - with only the naturally immune individuals
-            R.append(np.zeros(len(N)))
 
-            # subtract R0 from S0:
-            S[-1] -= R[-1]
+def run_sector_model(
+		beta_j,
+		eps,
+		f,
+		days_in_season,
+		theta,
+		is_haredi,
+		alpha=alpha,
+		beta_home = beta_home,
+		sigma=sigma,
+		delta=delta,
+		gama=gama,
+		population_size=population_size,
+		C=C_calibration,
+		psi=psi,
+		rho=hospitalizations,
+		new=new
+	):
+	"""
+	Receives all model's data and parameters, runs it for a season and returns
+	the results.
+	:param beta_j:
+	:param eps:
+	:param f:
+	:param days_in_season:
+	:param theta:
+	:param is_haredi:
+	:param alpha:
+	:param beta_home:
+	:param sigma:
+	:param delta:
+	:param gama:
+	:param population_size:
+	:param C:
+	:param psi:
+	:param rho:
+	:param new:
+	:return:
+	"""
 
-            # Initialize E  to 5*10**-4 ????
-            E.append(np.zeros(len(N)))
-            #             E[-1][:] = init_I
+	# Expand data
+	# fitting beta_j size to (180X1)
+	beta_j = expand_partial_array(
+		mapping_dic=age_ga_dict,
+		array_to_expand=beta_j,
+		size=len(GA)
+	)
+	# population size in each area
+	init_region_pop = shrink_array_sum(mapping_dic=region_dict,array_to_shrink=population_size)
+	# Initialize lists to save the states throughout the time steps
+	S, E, Ie, Is, Ia, R, H = [], [], [], [], [], [], []
 
-            # Initialize I (early) to 5*10**-4 ????
-            Ie.append(np.zeros(len(N)))
-            Ie[-1][:] = eps[t]
+	# Initialize a list for the newly infected
+	new_I, new_Is = [], []
 
-            # Initialize I (asymptomatic) to 5*0.5*10**-4 ????
-            Ia.append(np.zeros(len(N)))
+	# Initialize a list fot the lambdas
+	L = []
 
-            # Initialize I (symptomatic) to 5*0.5*10**-4 ????
-            Is.append(np.zeros(len(N)))
+	# Run the model
+	for t in range(days_in_season):
+		# If first iteration - initialize all states
+		if t % days_in_season == 0:
+			# Initialize S_0 to population size of each age-group
+			S.append(population_size.copy())
+			# Initialize R - with only the naturally immune individuals
+			R.append(np.zeros(len(N)))
 
-            # Subtract I_0 and A_0 from S_0
-            S[-1] -= (E[-1] + Ie[-1])
+			# subtract R0 from S0:
+			S[-1] -= R[-1]
 
-            # Zero newly infected on the first day of the season
-            new_I.append(np.zeros(len(N)))
-            new_Is.append(np.zeros(len(N)))
+			# Initialize E  to 5*10**-4 ????
+			E.append(np.zeros(len(N)))
+			#             E[-1][:] = init_I
 
-            # Initialize H, tracking compartment
-            H.append(np.zeros(len(N)))
+			# Initialize I (early) to 5*10**-4 ????
+			Ie.append(np.zeros(len(N)))
+			Ie[-1][:] = eps[t]
 
-        # Not a new season
+			# Initialize I (asymptomatic) to 5*0.5*10**-4 ????
+			Ia.append(np.zeros(len(N)))
 
-        # Calculate beta_home factor, current S_region/N_region and expand it to mach (180X1)
-        beta_home_factor = shrink_array_sum(mapping_dic=region_dict, array_to_shrink=S[-1]) / init_region_pop
-        beta_home_factor = expand_partial_array(mapping_dic=region_ga_dict,
-                                        array_to_expand=beta_home_factor, size=len(GA))
-        # Calculate lambda (High risk symptomatic + Low risk symptomatic + Asymptomatic)
-        contact_force = calculate_force_matriceis(t=t, C=C, Ie=Ie[-1], Ia=Ia[-1], Is=Is[-1], alpha=alpha)
+			# Initialize I (symptomatic) to 5*0.5*10**-4 ????
+			Is.append(np.zeros(len(N)))
 
-        lambda_t = (beta_home * beta_home_factor * contact_force['home'] +\
-                    beta_j * theta * is_haredi * contact_force['out'])
+			# Subtract I_0 and A_0 from S_0
+			S[-1] -= (E[-1] + Ie[-1])
 
-        L.append(lambda_t)
-        lambda_t = expand_partial_array(mapping_dic=region_age_dict,
-                                        array_to_expand=lambda_t)  # fitting lambda_t size to (720X1)
+			# Zero newly infected on the first day of the season
+			new_I.append(np.zeros(len(N)))
+			new_Is.append(np.zeros(len(N)))
 
-        # R(t)
-        R.append(R[-1] + gama * (Is[-1] + Ia[-1]) - eps[t])
+			# Initialize H, tracking compartment
+			H.append(np.zeros(len(N)))
 
-        # H(t)
-        H.append(rho * Is[-1] - new * H[-1])
+		# Not a new season
 
-        # Is(t)
-        # Save new_Is
-        new_Is.append((1 - f) * delta * Ie[-1])
-        # Calculate new i matrix for day t
-        Is.append(Is[-1] + new_Is[-1] - gama * Is[-1])
+		# Calculate beta_home factor, current S_region/N_region and expand it to mach (180X1)
+		beta_home_factor = shrink_array_sum(
+			mapping_dic=region_dict,
+			array_to_shrink=S[-1]) \
+						   / init_region_pop
+		beta_home_factor = expand_partial_array(
+			mapping_dic=region_ga_dict,
+			array_to_expand=beta_home_factor,
+			size=len(GA)
+		)
 
-        # Ia(t)
-        # Calculate new i matrix for day t
-        Ia.append(Ia[-1] + f * delta * Ie[-1] - gama * Ia[-1])
+		# Calculate lambda (High risk symptomatic + Low risk symptomatic +
+		# Asymptomatic)
+		contact_force = calculate_force_matriceis(
+			t=t,
+			C=C,
+			Ie=Ie[-1],
+			Ia=Ia[-1],
+			Is=Is[-1],
+			alpha=alpha
+		)
 
-        # Ie(t)
-        # Calculate new i matrix for day t
-        Ie.append(Ie[-1] + sigma * E[-1] - delta * Ie[-1])
+		lambda_t = (beta_home * beta_home_factor * contact_force['home'] +
+					beta_j * theta * is_haredi * contact_force['out'])
 
-        # E(t)
-        # Calculate new e matrix for day t
-        E.append(eps[t] + E[-1] + lambda_t * S[-1] - sigma * E[-1])
+		L.append(lambda_t)
+		# fitting lambda_t size to (720X1)
+		lambda_t = expand_partial_array(
+			mapping_dic=region_age_dict,
+			array_to_expand=lambda_t
+		)
 
-        # S(t)
-        # Save new_I
-        new_I.append(lambda_t * S[-1])
-        # Calculate current S
-        S.append(S[-1] - lambda_t * S[-1])
+		# R(t)
+		R.append(R[-1] + gama * (Is[-1] + Ia[-1]) - eps[t])
 
-    # Return the model results
-    return {'S': np.array(S), 'E': np.array(E), 'Ie': np.array(Ie), 'Ia': np.array(Ia), 'Is': np.array(Is),
-            'R': np.array(R), 'new_I': np.array(new_I), 'new_Is': np.array(new_Is), 'L': np.array(L), 'H': np.array(H)}
+		# H(t)
+		H.append(rho * Is[-1] - new * H[-1])
+
+		# Is(t)
+		# Save new_Is
+		new_Is.append((1 - f) * delta * Ie[-1])
+		# Calculate new i matrix for day t
+		Is.append(Is[-1] + new_Is[-1] - gama * Is[-1])
+
+		# Ia(t)
+		# Calculate new i matrix for day t
+		Ia.append(Ia[-1] + f * delta * Ie[-1] - gama * Ia[-1])
+
+		# Ie(t)
+		# Calculate new i matrix for day t
+		Ie.append(Ie[-1] + sigma * E[-1] - delta * Ie[-1])
+
+		# E(t)
+		# Calculate new e matrix for day t
+		E.append(eps[t] + E[-1] + lambda_t * S[-1] - sigma * E[-1])
+
+		# S(t)
+		# Save new_I
+		new_I.append(lambda_t * S[-1])
+		# Calculate current S
+		S.append(S[-1] - lambda_t * S[-1])
+
+	# Return the model results
+	return {
+		'S': np.array(S),
+		'E': np.array(E),
+		'Ie': np.array(Ie),
+		'Ia': np.array(Ia),
+		'Is': np.array(Is),
+		'R': np.array(R),
+		'new_I': np.array(new_I),
+		'new_Is': np.array(new_Is),
+		'L': np.array(L),
+		'H': np.array(H)
+	}

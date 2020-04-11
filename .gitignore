@@ -9,7 +9,9 @@ __pycache__/
 # Distribution / packaging
 .Python
 build/
+.idea/
 Data/Parameters/
+Data/2630_TAZ_POLY_only/
 develop-eggs/
 dist/
 downloads/
