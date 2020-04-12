@@ -69,44 +69,42 @@ def run_model(
 	# Initialize a list fot the lambdas
 	L = []
 
-	# Run the model
+	### -- Initialize the model states: -- ###
+	# Initialize S_0 to population size of each age-group
+	S.append(population_size.copy())
+
+	# Initialize R - with only the naturally immune individuals
+	R.append(np.zeros(len(N)))
+
+	# subtract R0 from S0:
+	S[-1] -= R[-1]
+
+	# Initialize E  to 5*10**-4 ????
+	E.append(np.zeros(len(N)))
+	#             E[-1][:] = init_I
+
+	# Initialize I (early) to 5*10**-4 ????
+	Ie.append(np.zeros(len(N)))
+	Ie[-1][:] = eps[t]
+
+	# Initialize I (asymptomatic) to 5*0.5*10**-4 ????
+	Ia.append(np.zeros(len(N)))
+
+	# Initialize I (symptomatic) to 5*0.5*10**-4 ????
+	Is.append(np.zeros(len(N)))
+
+	# Subtract I_0 and A_0 from S_0
+	S[-1] -= (E[-1] + Ie[-1])
+
+	# Zero newly infected on the first day of the season
+	new_I.append(np.zeros(len(N)))
+	new_Is.append(np.zeros(len(N)))
+
+	# Initialize H, tracking compartment
+	H.append(np.zeros(len(N)))
+
+	### -- Run the model -- ###
 	for t in range(days_in_season):
-		# If first iteration - initialize all states
-		if t % days_in_season == 0:
-			# Initialize S_0 to population size of each age-group
-			S.append(population_size.copy())
-			# Initialize R - with only the naturally immune individuals
-			R.append(np.zeros(len(N)))
-
-			# subtract R0 from S0:
-			S[-1] -= R[-1]
-
-			# Initialize E  to 5*10**-4 ????
-			E.append(np.zeros(len(N)))
-			#             E[-1][:] = init_I
-
-			# Initialize I (early) to 5*10**-4 ????
-			Ie.append(np.zeros(len(N)))
-			Ie[-1][:] = eps[t]
-
-			# Initialize I (asymptomatic) to 5*0.5*10**-4 ????
-			Ia.append(np.zeros(len(N)))
-
-			# Initialize I (symptomatic) to 5*0.5*10**-4 ????
-			Is.append(np.zeros(len(N)))
-
-			# Subtract I_0 and A_0 from S_0
-			S[-1] -= (E[-1] + Ie[-1])
-
-			# Zero newly infected on the first day of the season
-			new_I.append(np.zeros(len(N)))
-			new_Is.append(np.zeros(len(N)))
-
-			# Initialize H, tracking compartment
-			H.append(np.zeros(len(N)))
-
-		# Not a new season
-
 		# Calculate beta_home factor, current S_region/N_region and expand it
 		# to mach (180X1).
 		beta_home_factor = shrink_array_sum(
