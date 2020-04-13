@@ -45,8 +45,10 @@ def calculate_force_matriceis(
 		alpha
 	):
 	"""
-
-	:param C:
+	Calculates the by-product of all C-correlation tenzors with the sick
+	population for each time - home, work, leisure, fitting each j (age group)
+	and k (area) indexes.
+	:param C: C-correlation tenzors
 	:param Ie:
 	:param Is:
 	:param Ia:

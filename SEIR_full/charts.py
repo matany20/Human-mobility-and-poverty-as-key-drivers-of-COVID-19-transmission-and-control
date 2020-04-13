@@ -43,7 +43,7 @@ def plot_I_by_age(
 			plot_dict[age] = Is[:, age_dict[age]].sum(axis=1) + \
 							 Ia[:, age_dict[age]].sum(axis=1)
 
-	fig = plt.figure()
+	fig = plt.figure(figsize=(10,10))
 	ax = plt.subplot()
 	plot_df = pd.DataFrame.from_dict(plot_dict)
 

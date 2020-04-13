@@ -26,7 +26,7 @@ def run_model(
 		C=C_calibration,
 		psi=psi,
 		rho=hospitalizations,
-		new=new
+		new_c=new
 	):
 	"""
 	Receives all model's data and parameters, runs it for a season and returns
@@ -44,7 +44,7 @@ def run_model(
 	:param C:
 	:param psi:
 	:param rho:
-	:param new:
+	:param new_c:
 	:return:
 	"""
 
@@ -66,7 +66,7 @@ def run_model(
 	# Initialize a list for the newly infected
 	new_I, new_Is = [], []
 
-	# Initialize a list fot the lambdas
+	# Initialize a list for the lambdas
 	L = []
 
 	### -- Initialize the model states: -- ###
@@ -85,7 +85,7 @@ def run_model(
 
 	# Initialize I (early) to 5*10**-4 ????
 	Ie.append(np.zeros(len(N)))
-	Ie[-1][:] = eps[t]
+	# Ie[-1][:] = eps[0]
 
 	# Initialize I (asymptomatic) to 5*0.5*10**-4 ????
 	Ia.append(np.zeros(len(N)))
@@ -132,6 +132,7 @@ def run_model(
 					beta_j * contact_force['out'])
 
 		L.append(lambda_t)
+
 		# fitting lambda_t size to (720X1)
 		lambda_t = expand_partial_array(
 			mapping_dic=region_age_dict,
@@ -139,20 +140,30 @@ def run_model(
 		)
 
 		# R(t)
-		R.append(R[-1] + gama * (Is[-1] + Ia[-1]) - eps[t])
+		R.append(
+			R[-1] + gama * (Is[-1] + Ia[-1])
+		)
 
 		# H(t)
-		H.append(rho * Is[-1] - new * H[-1])
+		H.append(
+			rho * Is[-1] - new_c * H[-1]
+		)
 
 		# Is(t)
 		# Save new_Is
-		new_Is.append((1 - f) * delta * Ie[-1])
+		new_Is.append(
+			(1 - f) * delta * Ie[-1]
+		)
 		# Calculate new i matrix for day t
-		Is.append(Is[-1] + new_Is[-1] - gama * Is[-1])
+		Is.append(
+			Is[-1] + new_Is[-1] - gama * Is[-1]
+		)
 
 		# Ia(t)
 		# Calculate new i matrix for day t
-		Ia.append(Ia[-1] + f * delta * Ie[-1] - gama * Ia[-1])
+		Ia.append(
+			Ia[-1] + f * delta * Ie[-1] - gama * Ia[-1]
+		)
 
 		# Ie(t)
 		# Calculate new i matrix for day t
@@ -279,7 +290,8 @@ def run_sector_model(
 
 		# Not a new season
 
-		# Calculate beta_home factor, current S_region/N_region and expand it to mach (180X1)
+		# Calculate beta_home factor, current S_region/N_region and expand it
+		# to mach (180X1).
 		beta_home_factor = shrink_array_sum(
 			mapping_dic=region_dict,
 			array_to_shrink=S[-1]) \
