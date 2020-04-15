@@ -48,7 +48,7 @@ with open('../Data/parameters/init_pop.pickle', 'rb') as pickle_in:
 psi = 1
 
 # new - Transition rate out of H
-new = 1./9.
+nu = 1. / 9.
 
 # Epsilon (small noise) - only for non-zero population groups
 with open('../Data/parameters/eps_dict.pickle', 'rb') as pickle_in:

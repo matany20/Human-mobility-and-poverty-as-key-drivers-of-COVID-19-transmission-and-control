@@ -10,8 +10,6 @@ __pycache__/
 .Python
 build/
 .idea/
-Data/Parameters/
-Data/2630_TAZ_POLY_only/
 develop-eggs/
 dist/
 downloads/
@@ -130,3 +128,12 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# specific Data folders
+Data/Parameters/
+Data/Parameters_matan/
+Data/GIS/
+Data/demograph_matan/
+Data/demograph/
+Data/base_contact_mtx_matan/
+Data/base_contact_mtx/

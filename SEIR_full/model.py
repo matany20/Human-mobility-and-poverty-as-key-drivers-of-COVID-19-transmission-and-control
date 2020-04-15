@@ -26,7 +26,7 @@ def run_model(
 		C=C_calibration,
 		psi=psi,
 		rho=hospitalizations,
-		new_c=new
+		nu=nu
 	):
 	"""
 	Receives all model's data and parameters, runs it for a season and returns
@@ -44,7 +44,7 @@ def run_model(
 	:param C:
 	:param psi:
 	:param rho:
-	:param new_c:
+	:param nu:
 	:return:
 	"""
 
@@ -146,7 +146,7 @@ def run_model(
 
 		# H(t)
 		H.append(
-			rho * Is[-1] - new_c * H[-1]
+			rho * Is[-1] - nu * H[-1]
 		)
 
 		# Is(t)
@@ -210,7 +210,7 @@ def run_sector_model(
 		C=C_calibration,
 		psi=psi,
 		rho=hospitalizations,
-		new=new
+		nu=nu
 	):
 	"""
 	Receives all model's data and parameters, runs it for a season and returns
@@ -230,7 +230,7 @@ def run_sector_model(
 	:param C:
 	:param psi:
 	:param rho:
-	:param new:
+	:param nu:
 	:return:
 	"""
 
@@ -327,7 +327,7 @@ def run_sector_model(
 		R.append(R[-1] + gama * (Is[-1] + Ia[-1]) - eps[t])
 
 		# H(t)
-		H.append(rho * Is[-1] - new * H[-1])
+		H.append(rho * Is[-1] - nu * H[-1])
 
 		# Is(t)
 		# Save new_Is

@@ -1,5 +1,6 @@
 import itertools
 import numpy as np
+import pandas as pd
 
 def get_opposite_dict(dic, keys):
 	"""The function gets a dict and new keys list and returns a dictionary in which keys as keys,
@@ -38,6 +39,8 @@ def expand_partial_array(mapping_dic, array_to_expand, size=720):
 # --- Set indices --- #
 #######################
 
+cell_name = '20'
+
 # Age groups
 A = {
 	0: '0-4',
@@ -64,28 +67,8 @@ M = {
 }
 
 # region groups
-G = {
-	0: '11',
-	1: '11_betshemesh',
-	2: '21',
-	3: '22',
-	4: '23',
-	5: '24',
-	6: '29',
-	7: '31',
-	8: '32',
-	9: '41',
-	10: '42',
-	11: '43',
-	12: '44',
-	13: '51',
-	14: '51_tlv',
-	15: '51_bb',
-	16: '61',
-	17: '62',
-	18: '62_arab',
-	19: '71',
-}
+cell = pd.read_excel('../Data/division_choice/'+ cell_name + '/cell2name.xlsx')
+G = {i: str(k) for i, k in enumerate(list(cell['cell_id'].values))}
 
 # All combination:
 N = {
@@ -114,10 +97,12 @@ inter_dict = get_opposite_dict(
 	N,
 	[[x] for x in list(M.values())],
 )
+
 risk_dict = get_opposite_dict(
 	N,
 	[[x] for x in list(R.values())],
 )
+
 region_age_dict = get_opposite_dict(
 	N,
 	list(itertools.product(
@@ -125,6 +110,16 @@ region_age_dict = get_opposite_dict(
 		A.values(),
 	)),
 )
+
+region_risk_age_dict = get_opposite_dict(
+	N,
+	list(itertools.product(
+		G.values(),
+		R.values(),
+		A.values(),
+	))
+)
+
 inter_risk_dict = get_opposite_dict(
 	N,
 	list(itertools.product(
@@ -132,10 +127,12 @@ inter_risk_dict = get_opposite_dict(
 		R.values(),
 	)),
 )
+
 age_dict = get_opposite_dict(
 	N,
 	[[x] for x in list(A.values())],
 )
+
 risk_age_dict = get_opposite_dict(
 	N,
 	list(itertools.product(
@@ -143,10 +140,12 @@ risk_age_dict = get_opposite_dict(
 		A.values(),
 	)),
 )
+
 age_ga_dict = get_opposite_dict(
 	GA,
 	[[x] for x in list(A.values())],
 )
+
 region_dict = get_opposite_dict(
 	N,
 	[[x] for x in list(G.values())],
