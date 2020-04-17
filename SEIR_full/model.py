@@ -59,6 +59,7 @@ def run_model(
 		mapping_dic=region_dict,
 		array_to_shrink=population_size
 	)
+	init_region_pop[init_region_pop == 0] = 1
 
 	# Initialize lists to save the states throughout the time steps
 	S, E, Ie, Is, Ia, R, H = [], [], [], [], [], [], []
@@ -109,8 +110,14 @@ def run_model(
 		# to mach (180X1).
 		beta_home_factor = shrink_array_sum(
 			mapping_dic=region_dict,
-			array_to_shrink=S[-1]) \
-			/ init_region_pop
+			array_to_shrink=S[-1])
+		# print('beta_home_factor before: ')
+		# print(beta_home_factor)
+		# print('init_region_pop:')
+		# print(init_region_pop)
+		beta_home_factor = beta_home_factor / init_region_pop
+		# print('beta_home_factor after div: ')
+		# print(beta_home_factor)
 		beta_home_factor = expand_partial_array(
 			mapping_dic=region_ga_dict,
 			array_to_expand=beta_home_factor,
@@ -130,6 +137,10 @@ def run_model(
 
 		lambda_t = (beta_home * beta_home_factor * contact_force['home'] +
 					beta_j * contact_force['out'])
+
+		# print('lambda: ', lambda_t)
+		# print('lambda has nan: ', np.count_nonzero(np.isnan(lambda_t)))
+		lambda_t[np.isnan(lambda_t)] = 0
 
 		L.append(lambda_t)
 

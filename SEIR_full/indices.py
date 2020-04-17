@@ -2,39 +2,6 @@ import itertools
 import numpy as np
 import pandas as pd
 
-def get_opposite_dict(dic, keys):
-	"""The function gets a dict and new keys list and returns a dictionary in which keys as keys,
-	and values are the keys from dic """
-	res_dict = {}
-
-	for new_key in keys:
-		new_val_lst = []
-		for old_k, old_v in dic.items():
-			if all(i in old_v for i in new_key):
-				new_val_lst.append(old_k)
-		if len(new_key) == 1:
-			res_dict[new_key[0]] = new_val_lst
-		else:
-			res_dict[new_key] = new_val_lst
-	return res_dict
-
-
-def expand_partial_array(mapping_dic, array_to_expand, size=720):
-	"""The function gets mapping_dic - indeces to assign in the expanded array (with key granularity based on
-	array_to_expand), and array_to_expand - the expanded array's values will be based on this array. Returns
-	and expanded array shape (len(N),1) based on the array_to_expand"""
-
-	# Creating dictionary that maps the indices in the array to expand
-	#     small_mapping_dic = {k:v[0] for k,v in mapping_dic.items()}
-
-	# Assigning values to the full array
-	full_array = np.zeros(size)
-	for i, k in enumerate(mapping_dic.keys()):
-		full_array[mapping_dic[k]] = array_to_expand[i]
-
-	return full_array
-
-
 #######################
 # --- Set indices --- #
 #######################
@@ -91,6 +58,39 @@ GA = {
 		A.values(),
 	))
 }
+
+
+def get_opposite_dict(dic, keys):
+	"""The function gets a dict and new keys list and returns a dictionary in which keys as keys,
+	and values are the keys from dic """
+	res_dict = {}
+
+	for new_key in keys:
+		new_val_lst = []
+		for old_k, old_v in dic.items():
+			if all(i in old_v for i in new_key):
+				new_val_lst.append(old_k)
+		if len(new_key) == 1:
+			res_dict[new_key[0]] = new_val_lst
+		else:
+			res_dict[new_key] = new_val_lst
+	return res_dict
+
+
+def expand_partial_array(mapping_dic, array_to_expand, size=len(N)):
+	"""The function gets mapping_dic - indeces to assign in the expanded array (with key granularity based on
+	array_to_expand), and array_to_expand - the expanded array's values will be based on this array. Returns
+	and expanded array shape (len(N),1) based on the array_to_expand"""
+
+	# Creating dictionary that maps the indices in the array to expand
+	#     small_mapping_dic = {k:v[0] for k,v in mapping_dic.items()}
+
+	# Assigning values to the full array
+	full_array = np.zeros(size)
+	for i, k in enumerate(mapping_dic.keys()):
+		full_array[mapping_dic[k]] = array_to_expand[i]
+
+	return full_array
 
 # Opposite indices dictionaries:
 inter_dict = get_opposite_dict(
