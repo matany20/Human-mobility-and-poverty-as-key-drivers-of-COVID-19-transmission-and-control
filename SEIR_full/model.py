@@ -65,7 +65,7 @@ def run_model(
 	S, E, Ie, Is, Ia, R, H = [], [], [], [], [], [], []
 
 	# Initialize a list for the newly infected
-	new_I, new_Is = [], []
+	new_Is = []
 
 	# Initialize a list for the lambdas
 	L = []
@@ -98,7 +98,6 @@ def run_model(
 	S[-1] -= (E[-1] + Ie[-1])
 
 	# Zero newly infected on the first day of the season
-	new_I.append(np.zeros(len(N)))
 	new_Is.append(np.zeros(len(N)))
 
 	# Initialize H, tracking compartment
@@ -111,13 +110,7 @@ def run_model(
 		beta_home_factor = shrink_array_sum(
 			mapping_dic=region_dict,
 			array_to_shrink=S[-1])
-		# print('beta_home_factor before: ')
-		# print(beta_home_factor)
-		# print('init_region_pop:')
-		# print(init_region_pop)
 		beta_home_factor = beta_home_factor / init_region_pop
-		# print('beta_home_factor after div: ')
-		# print(beta_home_factor)
 		beta_home_factor = expand_partial_array(
 			mapping_dic=region_ga_dict,
 			array_to_expand=beta_home_factor,
@@ -138,8 +131,6 @@ def run_model(
 		lambda_t = (beta_home * beta_home_factor * contact_force['home'] +
 					beta_j * contact_force['out'])
 
-		# print('lambda: ', lambda_t)
-		# print('lambda has nan: ', np.count_nonzero(np.isnan(lambda_t)))
 		lambda_t[np.isnan(lambda_t)] = 0
 
 		L.append(lambda_t)
@@ -185,8 +176,6 @@ def run_model(
 		E.append(eps[t] + E[-1] + lambda_t * S[-1] - sigma * E[-1])
 
 		# S(t)
-		# Save new_I
-		new_I.append(lambda_t * S[-1])
 		# Calculate current S
 		S.append(S[-1] - lambda_t * S[-1])
 
@@ -198,7 +187,6 @@ def run_model(
 		'Ia': np.array(Ia),
 		'Is': np.array(Is),
 		'R': np.array(R),
-		'new_I': np.array(new_I),
 		'new_Is': np.array(new_Is),
 		'L': np.array(L),
 		'H': np.array(H),
@@ -259,12 +247,16 @@ def run_sector_model_behave(
 		size=len(GA)
 	)
 	# population size in each area
-	init_region_pop = shrink_array_sum(mapping_dic=region_dict,array_to_shrink=population_size)
+	init_region_pop = shrink_array_sum(
+		mapping_dic=region_dict,
+		array_to_shrink=population_size,
+	)
+	init_region_pop[init_region_pop == 0] = 1
 	# Initialize lists to save the states throughout the time steps
 	S, E, Ie, Is, Ia, R, H = [], [], [], [], [], [], []
 
 	# Initialize a list for the newly infected
-	new_I, new_Is = [], []
+	new_Is = []
 
 	# Initialize a list fot the lambdas
 	L = []
@@ -299,7 +291,6 @@ def run_sector_model_behave(
 			S[-1] -= (E[-1] + Ie[-1])
 
 			# Zero newly infected on the first day of the season
-			new_I.append(np.zeros(len(N)))
 			new_Is.append(np.zeros(len(N)))
 
 			# Initialize H, tracking compartment
@@ -311,8 +302,9 @@ def run_sector_model_behave(
 		# to mach (180X1).
 		beta_home_factor = shrink_array_sum(
 			mapping_dic=region_dict,
-			array_to_shrink=S[-1]) \
-						   / init_region_pop
+			array_to_shrink=S[-1]
+		)
+		beta_home_factor = beta_home_factor / init_region_pop
 		beta_home_factor = expand_partial_array(
 			mapping_dic=region_ga_dict,
 			array_to_expand=beta_home_factor,
@@ -335,7 +327,8 @@ def run_sector_model_behave(
 
 		lambda_t = (beta_home * beta_home_factor * contact_force['home'] +
 					beta_j * (theta * is_haredi + 1 - is_haredi) * contact_force['out'])
-
+		# preventing from lambda to become nan where there is no population.
+		lambda_t[np.isnan(lambda_t)] = 0
 		L.append(lambda_t)
 		# fitting lambda_t size to (720X1)
 		lambda_t = expand_partial_array(
@@ -368,8 +361,6 @@ def run_sector_model_behave(
 		E.append(eps[t] + E[-1] + lambda_t * S[-1] - sigma * E[-1])
 
 		# S(t)
-		# Save new_I
-		new_I.append(lambda_t * S[-1])
 		# Calculate current S
 		S.append(S[-1] - lambda_t * S[-1])
 
@@ -381,7 +372,6 @@ def run_sector_model_behave(
 		'Ia': np.array(Ia),
 		'Is': np.array(Is),
 		'R': np.array(R),
-		'new_I': np.array(new_I),
 		'new_Is': np.array(new_Is),
 		'L': np.array(L),
 		'H': np.array(H)
