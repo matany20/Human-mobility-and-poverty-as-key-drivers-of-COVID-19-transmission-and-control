@@ -157,7 +157,7 @@ def run_model(
 
 		# H(t)
 		H.append(
-			rho * Is[-1] - nu * H[-1]
+			H[-1] + rho * Is[-1] - nu * H[-1]
 		)
 
 		# Is(t)
@@ -205,13 +205,16 @@ def run_model(
 	}
 
 
-def run_sector_model(
+def run_sector_model_behave(
 		beta_j,
 		eps,
 		f,
 		days_in_season,
 		theta,
-		is_haredi,
+		beta_behave,
+		stay_home_idx = stay_home_idx,
+		is_haredi = is_haredi,
+		not_routine = not_routine,
 		alpha=alpha,
 		beta_home = beta_home,
 		sigma=sigma,
@@ -231,7 +234,10 @@ def run_sector_model(
 	:param f:
 	:param days_in_season:
 	:param theta:
+	:param beta_behave:
+	:param stay_home_idx:
 	:param is_haredi:
+	:param not_routine:
 	:param alpha:
 	:param beta_home:
 	:param sigma:
@@ -281,7 +287,7 @@ def run_sector_model(
 
 			# Initialize I (early) to 5*10**-4 ????
 			Ie.append(np.zeros(len(N)))
-			Ie[-1][:] = eps[t]
+			# Ie[-1][:] = eps[t]
 
 			# Initialize I (asymptomatic) to 5*0.5*10**-4 ????
 			Ia.append(np.zeros(len(N)))
@@ -321,11 +327,14 @@ def run_sector_model(
 			Ie=Ie[-1],
 			Ia=Ia[-1],
 			Is=Is[-1],
-			alpha=alpha
+			alpha=alpha,
+			beta_behave=beta_behave,
+			stay_home_idx=stay_home_idx,
+			not_routine=not_routine
 		)
 
 		lambda_t = (beta_home * beta_home_factor * contact_force['home'] +
-					beta_j * theta * is_haredi * contact_force['out'])
+					beta_j * (theta * is_haredi + 1 - is_haredi) * contact_force['out'])
 
 		L.append(lambda_t)
 		# fitting lambda_t size to (720X1)
@@ -338,7 +347,7 @@ def run_sector_model(
 		R.append(R[-1] + gama * (Is[-1] + Ia[-1]) - eps[t])
 
 		# H(t)
-		H.append(rho * Is[-1] - nu * H[-1])
+		H.append(H[-1] + (rho * gama) * Is[-1] - nu * H[-1])
 
 		# Is(t)
 		# Save new_Is
