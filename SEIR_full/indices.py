@@ -59,6 +59,16 @@ GA = {
 	))
 }
 
+MI = {
+	i: group for
+	i, group in
+	enumerate(itertools.product(
+		A.values(),
+		G.values(),
+		A.values(),
+	))
+}
+
 
 def get_opposite_dict(dic, keys):
 	"""The function gets a dict and new keys list and returns a dictionary in which keys as keys,

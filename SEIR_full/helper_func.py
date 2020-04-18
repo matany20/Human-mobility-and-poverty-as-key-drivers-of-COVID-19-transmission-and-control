@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.sparse import csr_matrix
 from .indices import *
 
 def MSE(
@@ -34,6 +35,52 @@ def shrink_array_sum(
 		shrunk_array[i] = array_to_shrink[mapping_dic[k]].sum()
 
 	return shrunk_array
+
+
+def create_C_mtx_leisure_work(
+		od_mat,
+		base_mat,
+		age_dist_area,
+		eye_mat=None,
+		stay_home_idx=None
+	):
+	"""
+	This function creates Contact matrix for a specific scenario with or w/o
+	stay_home_idx
+	:param od_mat:
+	:param base_mat:
+	:param age_dist_area:
+	:param eye_mat:
+	:param stay_home_idx:
+	:return:
+	"""
+	full_C = pd.DataFrame(
+		index=pd.MultiIndex.from_tuples(list(MI.values()),
+										names=['age', 'area', 'age']),
+		columns=od_mat.index
+	)
+	# fill the matrix:
+	if stay_home_idx is None:
+		factor = 1
+	for index in list(full_C.index):
+		if factor != 1:
+			try:
+				factor = stay_home_idx.loc[index[1]]['mean']
+			except:
+				factor = 1
+		tmp1 = age_dist_area[index[2]]
+		tmp1.index = list(G.values())
+		if (index[0] in ['0-4', '5-9']) and (eye_mat is not None):
+			tmp2 = eye_mat.loc[index[1]] * \
+				   base_mat.loc[index[0]][index[2]] * factor
+		else:
+			tmp2 = od_mat.loc[index[1]] * \
+				   base_mat.loc[index[0]][index[2]] * factor
+		full_C.loc[index] = tmp2.divide(tmp1)
+
+	return csr_matrix(
+		full_C.unstack().reorder_levels(['area', 'age']).sort_index().values.astype(float)
+	)
 
 
 def calculate_force_matriceis(
