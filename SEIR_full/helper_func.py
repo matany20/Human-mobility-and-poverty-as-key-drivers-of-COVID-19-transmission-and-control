@@ -173,33 +173,18 @@ def calculate_force_matriceis(
 	"""
 	# Calculating beta_behave components:
 	if not((beta_behave is None) and (stay_home_idx is None) and (not_routine is None)):
-		# behave_componnet_inter_no_work = (beta_behave * stay_home_idx['inter']['not_work'][t]) ** \
-		# 								 not_routine['inter']['not_work'][t]
-		#
-		# behave_componnet_non_no_work = (beta_behave * stay_home_idx['non_inter']['not_work'][t]) ** \
-		# 								 not_routine['non_inter']['not_work'][t]
-		#
-		# behave_componnet_inter_work = (beta_behave * stay_home_idx['inter']['work'][t]) ** \
-		# 							   not_routine['inter']['work'][t]
-		#
-		# behave_componnet_non_work = (beta_behave * stay_home_idx['non_inter']['work'][t]) ** \
-		# 							   not_routine['non_inter']['work'][t]
-
-		behave_componnet_inter_no_work = (beta_behave *
-										  stay_home_idx['inter'][t]) ** \
+		behave_componnet_inter_no_work = (beta_behave * stay_home_idx['inter']['not_work'][t]) ** \
 										 not_routine['inter']['not_work'][t]
 
-		behave_componnet_non_no_work = (beta_behave *
-										stay_home_idx['non'][t]) ** \
-									   not_routine['non_inter']['not_work'][t]
+		behave_componnet_non_no_work = (beta_behave * stay_home_idx['non_inter']['not_work'][t]) ** \
+										 not_routine['non_inter']['not_work'][t]
 
-		behave_componnet_inter_work = (beta_behave *
-									   stay_home_idx['inter'][t]) ** \
-									  not_routine['inter']['work'][t]
+		behave_componnet_inter_work = (beta_behave * stay_home_idx['inter']['work'][t]) ** \
+									   not_routine['inter']['work'][t]
 
-		behave_componnet_non_work = (beta_behave *
-									 stay_home_idx['non'][t]) ** \
-									not_routine['non_inter']['work'][t]
+		behave_componnet_non_work = (beta_behave * stay_home_idx['non_inter']['work'][t]) ** \
+									   not_routine['non_inter']['work'][t]
+
 
 	force_home = (behave_componnet_inter_no_work *\
 				  C['home_inter'][t].T.dot((Ie[inter_risk_dict['Intervention', 'Low']] + Ie[inter_risk_dict['Intervention', 'High']]) * alpha +
