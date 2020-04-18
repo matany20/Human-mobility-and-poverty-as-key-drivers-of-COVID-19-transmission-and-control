@@ -328,7 +328,7 @@ def run_sector_model_behave(
 		lambda_t = (beta_home * beta_home_factor * contact_force['home'] +
 					beta_j * (theta * is_haredi + 1 - is_haredi) * contact_force['out'])
 		# preventing from lambda to become nan where there is no population.
-		lambda_t[np.isnan(lambda_t)] = 0
+		# lambda_t[np.isnan(lambda_t)] = 0
 		L.append(lambda_t)
 		# fitting lambda_t size to (720X1)
 		lambda_t = expand_partial_array(
