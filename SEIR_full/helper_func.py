@@ -1,6 +1,67 @@
 import numpy as np
 from scipy.sparse import csr_matrix
 from .indices import *
+from scipy.stats import poisson
+from scipy.stats import binom
+
+
+def ML_bin(
+		data,
+		model_pred,
+		threshold = 5,
+		approx=True,
+	):
+	"""
+	This function calculates the log-likelihood of the Bin approximation of the
+	measurment of illnes in israel.
+	It assumes the number of tests is n_{j,k,t}, the probability for getting a
+	result is p_{j,k,t} - the model prediction, and the data point is q_{j,k,t}.
+	in total the likelihood P(X=q)~Bin(n,p) per data point.
+	For cells (specific t,j,k triplet) of not sufficient number of tests:
+	with n_{j,k,t} < threshold the likelihood will be ignored.
+	:param data: np.array of 4 dimensions :
+					axis 0: n, q - representing different values:
+							starting from  total tests, and
+							than positives rate.
+					axis 1: t - time of sample staring from the first day in
+							quastion calibrated to the model.
+					axis 2: k - area index
+					axis 3: j - age index
+			data - should be smoothed.
+			(filled with zeros where no test accured)
+	:param model_pred: np.ndarray of 3 dimensions representing the probability:
+						axis 1: t - time of sample staring from the first day
+						 		in quastion calibrated to the model.
+						axis 2: k - area index
+						axis 3: j - age index
+	:return: the -log-likelihood of the data given the prediction of the model.
+	"""
+	n = data[0, :, :, :]
+	q = data[1, :, :, :]
+	p = model_pred
+	if approx:
+		##				###
+		# poison approx. ##
+		##				###
+		ll = -poisson.logpmf(
+			k=n * q,
+			mu=n * p,
+		)
+	else:
+		##				###
+		# Binomial dist. ##
+		##				###
+		ll = -binom.logpmf(
+			k=n * q,
+			n=n,
+			p=p,
+		)
+
+	# cut below threshold values
+	ll = ll * (n > threshold)
+
+	return ll.sum()
+
 
 def MSE(
 		data,
@@ -123,6 +184,7 @@ def calculate_force_matriceis(
 
 		behave_componnet_non_work = (beta_behave * stay_home_idx['non_inter']['work'][t]) ** \
 									   not_routine['non_inter']['work'][t]
+
 
 	force_home = (behave_componnet_inter_no_work *\
 				  C['home_inter'][t].T.dot((Ie[inter_risk_dict['Intervention', 'Low']] + Ie[inter_risk_dict['Intervention', 'High']]) * alpha +
