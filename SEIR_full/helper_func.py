@@ -5,6 +5,28 @@ from scipy.stats import poisson
 from scipy.stats import binom
 
 
+def divide_population(prop_dict,
+					  vector_to_switch,
+					  ):
+	"""
+	The function move population from non-Intervention group to Intervention group
+	:param prop_dict: key = (region,risk,age), value=prop to shift
+	:param vector_to_switch: the current population distribution
+	:param low_only: shift low-risk groups only (boolean)
+	:return: vector with new population distribution.
+	"""
+	new_distribution = vector_to_switch.copy()
+	for region, risk, age in prop_dict.keys():
+		# indices of intervention group and non-intervention group
+		inter_idx = inter_region_risk_age_dict['Intervention',region,risk,age]
+		non_inter_idx = inter_region_risk_age_dict['Non-intervention', region, risk, age]
+
+		new_distribution[inter_idx] = vector_to_switch[non_inter_idx] * prop_dict[region,risk,age]
+		new_distribution[non_inter_idx] = vector_to_switch[non_inter_idx] * (1 - prop_dict[region, risk, age])
+
+		return new_distribution
+
+
 def ML_Bin(
 		data,
 		model_pred,
@@ -40,10 +62,6 @@ def ML_Bin(
 	n = data[0, :, :]
 	q = factor*data[1, :, :]
 	p = model_pred
-
-	# print('n', n[-5:, -5:])
-	# print('q', q[-5:, -5:])
-	# print('p', p[-5:, -5:])
 	if approx:
 		##				###
 		# poison approx. ##
@@ -103,10 +121,6 @@ def ML_Pois_Naiv(
 	factor = 1
 	q = data
 	p = factor*model_pred
-
-	# print('n', n[-5:, -5:])
-	# print('q', q[-5:, -5:])
-	# print('p', p[-5:, -5:])
 
 	##				###
 	# poison approx. ##
