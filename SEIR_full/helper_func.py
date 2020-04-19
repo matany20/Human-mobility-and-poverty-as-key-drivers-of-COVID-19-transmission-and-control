@@ -5,11 +5,12 @@ from scipy.stats import poisson
 from scipy.stats import binom
 
 
-def ML_bin(
+def ML_Bin(
 		data,
 		model_pred,
 		threshold = 5,
 		approx=True,
+		factor=1,
 	):
 	"""
 	This function calculates the log-likelihood of the Bin approximation of the
@@ -36,9 +37,13 @@ def ML_bin(
 						axis 3: j - age index
 	:return: the -log-likelihood of the data given the prediction of the model.
 	"""
-	n = data[0, :, :, :]
-	q = data[1, :, :, :]
+	n = data[0, :, :]
+	q = factor*data[1, :, :]
 	p = model_pred
+
+	# print('n', n[-5:, -5:])
+	# print('q', q[-5:, -5:])
+	# print('p', p[-5:, -5:])
 	if approx:
 		##				###
 		# poison approx. ##
@@ -58,8 +63,64 @@ def ML_bin(
 		)
 
 	# cut below threshold values
+	ll = np.nan_to_num(ll,
+				  nan=0,
+				  posinf=0,
+				  neginf=0)
 	ll = ll * (n > threshold)
+	return ll.sum()
 
+
+def ML_Pois_Naiv(
+		data,
+		model_pred,
+	):
+	"""
+	This function calculates the log-likelihood of the POISSON of the
+	measurment of illnes in israel.
+	It assumes the number of tests is n_{j,k,t}, the probability for getting a
+	result is p_{j,k,t} - the model prediction, and the data point is q_{j,k,t}.
+	in total the likelihood P(X=q)~Bin(n,p) per data point.
+	For cells (specific t,j,k triplet) of not sufficient number of tests:
+	with n_{j,k,t} < threshold the likelihood will be ignored.
+	:param data: np.array of 4 dimensions :
+					axis 0: n, q - representing different values:
+							starting from  total tests, and
+							than positives rate.
+					axis 1: t - time of sample staring from the first day in
+							quastion calibrated to the model.
+					axis 2: k - area index
+					axis 3: j - age index
+			data - should be smoothed.
+			(filled with zeros where no test accured)
+	:param model_pred: np.ndarray of 3 dimensions representing the probability:
+						axis 1: t - time of sample staring from the first day
+						 		in quastion calibrated to the model.
+						axis 2: k - area index
+						axis 3: j - age index
+	:return: the -log-likelihood of the data given the prediction of the model.
+	"""
+	factor = 1
+	q = data
+	p = factor*model_pred
+
+	# print('n', n[-5:, -5:])
+	# print('q', q[-5:, -5:])
+	# print('p', p[-5:, -5:])
+
+	##				###
+	# poison approx. ##
+	##				###
+	ll = -poisson.logpmf(
+		k=q,
+		mu=p,
+	)
+
+	# cut below threshold values
+	ll = np.nan_to_num(ll,
+				  nan=0,
+				  posinf=0,
+				  neginf=0)
 	return ll.sum()
 
 

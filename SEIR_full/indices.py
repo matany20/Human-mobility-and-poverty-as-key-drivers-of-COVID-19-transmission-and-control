@@ -36,6 +36,9 @@ M = {
 # region groups
 cell = pd.read_excel('../Data/division_choice/'+ cell_name + '/cell2name.xlsx')
 G = {i: str(k) for i, k in enumerate(list(cell['cell_id'].values))}
+cell.set_index('cell_id', inplace=True)
+cell.index = cell.index.astype(str)
+cell = cell.to_dict()['cell_name']
 
 # All combination:
 N = {

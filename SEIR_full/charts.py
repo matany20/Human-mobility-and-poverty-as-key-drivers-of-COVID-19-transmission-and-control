@@ -4,6 +4,7 @@ from matplotlib import pyplot as plt
 import datetime
 import numpy as np
 import pandas as pd
+from .helper_func import *
 from matplotlib.patches import Patch
 
 
@@ -182,6 +183,7 @@ def plot_calibrated_model_region(
 		region_name,
 		start='2020-03-20',
 		end='2020-04-13',
+		loss_func='MSE'
 		):
 	""" The function gets the results of the model and plot for each region
      the model results and the data normalized by region population. Data format is of region-age
@@ -191,8 +193,26 @@ def plot_calibrated_model_region(
 	:param start:
 	:param end:
 	:param region_name:
+	:param loss_func:
 	:return:
 	"""
+	if loss_func == "MSE":
+		# fixing data to be proportion of israel citizens
+		data_specific = data[1] / 9136000
+	elif loss_func == "BIN" or loss_func == "POIS":
+		# fixing data to be proportion of tests
+		data_specific = data.copy()
+		data_specific[1] = (data[1] / data[0]).fillna(0).replace(
+			[np.inf, -np.inf], 0)
+		# fixing model_out to be proportion of cell j,k
+		pop_jk = shrink_array_sum(region_age_dict, population_size)
+		mdl_data_specific = mdl_data.copy()
+		mdl_data_specific = mdl_data_specific / pop_jk
+	elif loss_func == 'POIS_NAIV':
+		# fixing data to be proportion of israel citizens
+		data_specific = data[1]
+		# fixing model output to be new sick people
+		mdl_data_specific = mdl_data * 9136000
 
 	#index to cut model's data
 	start_idx = int(np.where(date_list == start)[0])
@@ -201,18 +221,23 @@ def plot_calibrated_model_region(
 	for key in region_dict.keys():
 		plot_dict[key + '_mdl'] = mdl_data[start_idx:end_idx+1, region_dict[key]].sum(axis=1) / \
 								  population_size[region_dict[key]].sum()
-		plot_dict[key + '_dt'] = data[:, region_ga_dict[key]].sum(axis=1) / \
+		plot_dict[key + '_dt'] = data_specific[:, region_ga_dict[key]].sum(axis=1) / \
 								 population_size[region_dict[key]].sum()
 
 	plot_df = pd.DataFrame.from_dict(plot_dict)
 	plot_df.set_index(date_list[start_idx:end_idx+1],inplace=True)
 
-	fig, axes = plt.subplots(np.ceil(len(region_dict))/4, 4)
+	fig, axes = plt.subplots(int(np.ceil(len(region_dict)/3)), 3, figsize=(15,15))
 
 	for ax, key in zip(axes.flat, region_dict.keys()):
 
-		plot_df.plot(y=[key + '_mdl', key + '_dt'], style=['-', '.'],
-					 ax=ax,label=['Model', 'Data'])
+		plot_df.plot(y=[key + '_mdl', key + '_dt'],
+					 style=['-', '.'],
+					 # c=['b', 'r'],
+					 linewidth=3,
+					 markersize=12,
+					 ax=ax,
+					 label=['Model', 'Data'])
 		ax.set_title('Region {}'.format(region_name[key]))
 		ax.set_xticklabels(labels=ax.get_xticklabels(), rotation=20, rotation_mode="anchor", ha="right")
 		ax.legend(frameon=False)
