@@ -478,19 +478,33 @@ class Model_behave:
 			disable_beta_behave=np.zeros(len(GA)),
 		):
 		# Calculating beta_behave components:
+		behave_componnet_factor = (beta_behave * stay_home_idx['inter']['not_work'][t])
+		if (type(behave_componnet_factor)==float) or \
+				(type(behave_componnet_factor) == np.float64):
+			if behave_componnet_factor==0:
+				behave_componnet_factor = 1
+		else:
+			behave_componnet_factor[behave_componnet_factor==0] = 1
 		behave_componnet_inter_no_work = np.power(
-			(1 / (beta_behave * stay_home_idx['inter']['not_work'][t]),
-			 disable_beta_behave)) * \
-										 (beta_behave *
-										  stay_home_idx['inter']['not_work'][
-											  t]) ** \
-										 not_routine['inter']['not_work'][t]
+			(1 / behave_componnet_factor),
+			 disable_beta_behave) * \
+			(beta_behave *
+			stay_home_idx['inter']['not_work'][t]) ** \
+			not_routine['inter']['not_work'][t]
 
 		behave_componnet_non_no_work = (beta_behave * stay_home_idx['non_inter']['not_work'][t]) ** \
 										not_routine['non_inter']['not_work'][t]
 
-		behave_componnet_inter_work = np.power((1. / (beta_behave * stay_home_idx['inter']['not_work'][t]),
-													disable_beta_behave)) *\
+		behave_componnet_factor = (beta_behave * stay_home_idx['inter']['work'][t])
+		if (type(behave_componnet_factor) == float) or \
+				(type(behave_componnet_factor) == np.float64):
+			if behave_componnet_factor == 0:
+				behave_componnet_factor = 1
+		else:
+			behave_componnet_factor[behave_componnet_factor == 0] = 1
+
+		behave_componnet_inter_work = np.power((1. / behave_componnet_factor),
+													disable_beta_behave) *\
 										(beta_behave * stay_home_idx['inter']['work'][t]) ** \
 										not_routine['inter']['work'][t]
 
