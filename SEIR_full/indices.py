@@ -121,6 +121,16 @@ region_age_dict = get_opposite_dict(
 	)),
 )
 
+inter_region_risk_age_dict = get_opposite_dict(
+	N,
+	list(itertools.product(
+		M.values(),
+		G.values(),
+		R.values(),
+		A.values(),
+	))
+)
+
 region_risk_age_dict = get_opposite_dict(
 	N,
 	list(itertools.product(
