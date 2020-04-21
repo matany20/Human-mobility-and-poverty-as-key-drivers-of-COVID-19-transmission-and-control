@@ -127,6 +127,7 @@ class Model_behave:
 		self.H.append(np.zeros(len(N)))
 
 
+
 	def fit(
 			self,
 			p0,
@@ -305,46 +306,40 @@ class Model_behave:
 		for key, value in new_param.items():
 			setattr(self, key, value)
 
+
 	def intervention(
 			self,
 			C,
-			beta_j,
-			beta_behave,
-			theta,
 			days_in_season,
 			stay_home_idx,
 			not_routine,
-			prop_dict,
-			disable_beta_behave=np.zeros(len(GA))
+			prop_dict=None,
 		):
 		"""
 		Receives  model's parameters and run intervention for days_in_season days
 		the results.
 		:param self:
-		:param beta_j:
-		:param beta_behave:
 		:param days_in_season:
 		:param stay_home_idx:
 		:param not_routine:
 		:param disable_beta_behave:
 		"""
 		# Shifting population in compartments:
-		self.S.append(divide_population(prop_dict, self.S[-1]))
-		self.E.append(divide_population(prop_dict, self.E[-1]))
-		self.Ie.append(divide_population(prop_dict, self.Ie[-1]))
-		self.Ia.append(divide_population(prop_dict, self.Ia[-1]))
-		self.Is.append(divide_population(prop_dict, self.Is[-1]))
-		self.R.append(divide_population(prop_dict, self.R[-1]))
+		if prop_dict is not None:
+			self.S.append(divide_population(prop_dict, self.S.pop()))
+			self.E.append(divide_population(prop_dict, self.E.pop()))
+			self.Ie.append(divide_population(prop_dict, self.Ie.pop()))
+			self.Ia.append(divide_population(prop_dict, self.Ia.pop()))
+			self.Is.append(divide_population(prop_dict, self.Is.pop()))
+			self.R.append(divide_population(prop_dict, self.R.pop()))
+		# make sure no new sick will pop up during intervention
+		self.eps = np.zeros((days_in_season, len(N)))
 
-		self.predict(
+		return self.predict(
 			C=C,
-			beta_j=beta_j,
-			beta_behave=beta_behave,
-			theta=theta,
 			days_in_season=days_in_season,
 			stay_home_idx=stay_home_idx,
 			not_routine=not_routine,
-			disable_beta_behave = disable_beta_behave,
 		)
 
 
@@ -357,7 +352,6 @@ class Model_behave:
 			beta_j=None,
 			beta_behave=None,
 			theta=None,
-			disable_beta_behave=np.zeros(len(GA)),
 		):
 		"""
 		Receives  model's parameters and run model for days_in_season days
@@ -408,7 +402,6 @@ class Model_behave:
 				beta_behave=beta_behave,
 				stay_home_idx=stay_home_idx,
 				not_routine=not_routine,
-				disable_beta_behave=disable_beta_behave,
 			)
 
 			lambda_t = (self.beta_home * beta_home_factor * contact_force['home'] +
@@ -475,41 +468,23 @@ class Model_behave:
 			stay_home_idx,
 			not_routine,
 			beta_behave,
-			disable_beta_behave=np.zeros(len(GA)),
 		):
 		# Calculating beta_behave components:
-		behave_componnet_factor = (beta_behave * stay_home_idx['inter']['not_work'][t])
-		if (type(behave_componnet_factor)==float) or \
-				(type(behave_componnet_factor) == np.float64):
-			if behave_componnet_factor==0:
-				behave_componnet_factor = 1
-		else:
-			behave_componnet_factor[behave_componnet_factor==0] = 1
-		behave_componnet_inter_no_work = np.power(
-			(1 / behave_componnet_factor),
-			 disable_beta_behave) * \
-			(beta_behave *
-			stay_home_idx['inter']['not_work'][t]) ** \
-			not_routine['inter']['not_work'][t]
+		behave_componnet_inter_no_work = \
+			np.power(beta_behave * stay_home_idx['inter']['not_work'][t],
+					 not_routine['inter']['not_work'][t])
 
-		behave_componnet_non_no_work = (beta_behave * stay_home_idx['non_inter']['not_work'][t]) ** \
-										not_routine['non_inter']['not_work'][t]
+		behave_componnet_non_no_work = \
+			np.power(beta_behave * stay_home_idx['non_inter']['not_work'][t],
+					 not_routine['non_inter']['not_work'][t])
 
-		behave_componnet_factor = (beta_behave * stay_home_idx['inter']['work'][t])
-		if (type(behave_componnet_factor) == float) or \
-				(type(behave_componnet_factor) == np.float64):
-			if behave_componnet_factor == 0:
-				behave_componnet_factor = 1
-		else:
-			behave_componnet_factor[behave_componnet_factor == 0] = 1
+		behave_componnet_inter_work = \
+			np.power(beta_behave * stay_home_idx['inter']['work'][t],
+					 not_routine['inter']['work'][t])
 
-		behave_componnet_inter_work = np.power((1. / behave_componnet_factor),
-													disable_beta_behave) *\
-										(beta_behave * stay_home_idx['inter']['work'][t]) ** \
-										not_routine['inter']['work'][t]
-
-		behave_componnet_non_work = (beta_behave * stay_home_idx['non_inter']['work'][t]) ** \
-									not_routine['non_inter']['work'][t]
+		behave_componnet_non_work = \
+			np.power(beta_behave * stay_home_idx['non_inter']['work'][t],
+					 not_routine['non_inter']['work'][t])
 
 		force_home = ((behave_componnet_inter_no_work * \
 						C['home_inter'][t].T.dot((self.Ie[-1][inter_risk_dict['Intervention', 'Low']] +

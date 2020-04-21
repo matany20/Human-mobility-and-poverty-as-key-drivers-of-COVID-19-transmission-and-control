@@ -50,7 +50,7 @@ gama = 1. / 7.
 delta = 1. / 2.
 
 # sigma - transition rate E to Ie
-sigma = 1. / 3.5
+sigma = 1. / 4.4
 
 
 # Population size
@@ -61,7 +61,7 @@ with open('../Data/parameters/init_pop.pickle', 'rb') as pickle_in:
 psi = 1
 
 # new - Transition rate out of H
-nu = 1. / 9.
+nu = 1. / 10.
 
 # Epsilon (small noise) - only for non-zero population groups
 with open('../Data/parameters/eps_dict.pickle', 'rb') as pickle_in:
@@ -72,6 +72,8 @@ with open('../Data/parameters/eps_by_region.pickle', 'rb') as pickle_in:
 
 # alpha - early infected infection factor
 alpha = 1.0
+
+pop_israel = 9136000
 
 # # Load immunity proportions
 # with open('../model_data/immunity.pickle', 'rb') as pickle_in:

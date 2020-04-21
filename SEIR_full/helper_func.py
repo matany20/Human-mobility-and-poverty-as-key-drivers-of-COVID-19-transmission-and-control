@@ -24,7 +24,8 @@ def divide_population(prop_dict,
 		new_distribution[inter_idx] = vector_to_switch[non_inter_idx] * prop_dict[region,risk,age]
 		new_distribution[non_inter_idx] = vector_to_switch[non_inter_idx] * (1 - prop_dict[region, risk, age])
 
-		return new_distribution
+
+	return new_distribution
 
 
 def ML_Bin(
@@ -217,6 +218,13 @@ def create_C_mtx_leisure_work(
 	return csr_matrix(
 		full_C.unstack().reorder_levels(['area', 'age']).sort_index().values.astype(float)
 	)
+
+
+def Beta2beta_j(Beta):
+	return np.array([Beta[0], Beta[0], Beta[0],
+					Beta[1], Beta[1],
+					Beta[2], Beta[2],
+					Beta[3], Beta[3]])
 
 
 def calculate_force_matriceis(
