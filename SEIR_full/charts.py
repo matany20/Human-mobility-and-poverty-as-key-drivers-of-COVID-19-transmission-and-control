@@ -26,27 +26,32 @@ def plot_I_by_age(
 	"""
 
 	Is = mdl_res['Is']
-	Ia = mdl_res['Is']
+	Ia = mdl_res['Ia']
 
 	# dictionary of arrays to plot
 	plot_dict ={}
-
 	if with_asym:
 		for age in A.values():
-			plot_dict[age + ' sym'] = Is[:, age_dict[age]].sum(axis=1)
-			plot_dict[age + ' asym'] = Ia[:, age_dict[age]].sum(axis=1)
+			ylabel = 'sym/asym'
+			plot_dict[age + ' sym'] = Is[:, age_dict[age]].sum(axis=1)*pop_israel
+			plot_dict[age + ' asym'] = Ia[:, age_dict[age]].sum(axis=1)*pop_israel
 
 	elif sym_only:
+		ylabel = 'sym only'
 		for age in A.values():
-			plot_dict[age + ' sym'] = Is[:, age_dict[age]].sum(axis=1)
+			plot_dict[age + ' sym'] = Is[:, age_dict[age]].sum(axis=1)*pop_israel
 
 	else:
+		ylabel = 'all'
 		for age in A.values():
-			plot_dict[age] = Is[:, age_dict[age]].sum(axis=1) + \
-							 Ia[:, age_dict[age]].sum(axis=1)
+			plot_dict[age] = (Is[:, age_dict[age]].sum(axis=1) + \
+							 Ia[:, age_dict[age]].sum(axis=1))*pop_israel
 
-	fig = plt.figure(figsize=(10,10))
+	fig = plt.figure(figsize=(15,10))
 	ax = plt.subplot()
+	ax.set_ylabel('new Spreaders cases (' + ylabel + ') [#]', fontsize=35)
+	ax.set_title('Spreaders Cases Global by Age', fontsize=50)
+	ax.set_xlabel('Time [d]', fontsize=35)
 	plot_df = pd.DataFrame.from_dict(plot_dict)
 
 	# plot
@@ -281,3 +286,67 @@ def plot_calibrated_total_model(data,
 	ax.set_title('Country level calibration plot')
 
 	return fig, ax
+
+
+def make_respiratory_warning(
+		res_mdl,
+		days_of_inter,
+		time=14,
+		thresh=700
+):
+	ubRespiration = res_mdl['H'].sum(axis=1)
+	ubRespiration = ubRespiration[days_of_inter:] * pop_israel
+	x = ubRespiration[time:]
+	y = ubRespiration[:-time]
+	max_idx = x.argmax()
+	x = x[:max_idx]
+	y = y[:max_idx]
+
+	def find_y(x, y, value):
+		before = x[x < value].max()
+		after = x[x > value].min()
+		idx = x[x < value].argmax()
+		x_ratio = (value - before) / (after - before)
+		return (y[idx + 1] - y[idx]) * x_ratio + y[idx]
+
+	def plt_malben(ax, x, y, x_list, zorder):
+		for thresh in x_list:
+			if thresh < x.max():
+				y_thresh = find_y(x, y, thresh)
+				ax.axvline(x=thresh, ymin=0,
+						   ymax=(y_thresh - y.min()) / (y.max() - x.min()), c='k',
+						   linewidth=2, linestyle='--', zorder=zorder)
+				ax.axhline(y=y_thresh, xmin=0,
+						   xmax=(thresh - x.min()) / (x.max() - x.min()), c='k',
+						   linewidth=2, linestyle='--', zorder=zorder)
+
+	fig, ax = plt.subplots(figsize=(15, 10))
+
+	plt.rcParams.update({'font.size': 40})
+	ax.set_xlim([x.min(), x.max()])
+	ax.set_ylim([y.min(), y.max()])
+	ax.set_xlabel('רתומ םימשנומ ףס', fontsize=35)
+	str1 = '\n' + ' הארתהל םימשנומ רפסמ'
+	str2 = 'שארמ םימי' + str(time)
+	ax.set_ylabel(str2 + str1, fontsize=35)
+	ax.set_title('ןוחטב ףס', fontsize=50)
+	xticks = list(range(thresh, int(x.min()), -200)) + list(
+		range(thresh, int(x.max()), 200))
+	ax.set_xticks(xticks)
+	if thresh < x.max():
+		ax.scatter(x=[thresh], y=[find_y(x, y, thresh)], c='r', s=400, zorder=4)
+
+	ax.plot(x, y, c='k', linewidth=10, zorder=3)
+	plt_malben(ax, x, y, range(thresh, thresh + 1200, 400), 2)
+	plt.show()
+	plt.rcParams.update({'font.size': 20})
+
+
+def plot_respiration_cases(res_mdl):
+	fig, ax = plt.subplots(figsize=(15, 10))
+	ax.plot(((res_mdl['H']).sum(axis=1))*pop_israel)
+	ax.set_ylabel('Resipratory cases [#]', fontsize=35)
+	ax.set_title('Respiratory Cases Global', fontsize=50)
+	ax.set_xlabel('Time [d]', fontsize=35)
+	plt.show()
+
