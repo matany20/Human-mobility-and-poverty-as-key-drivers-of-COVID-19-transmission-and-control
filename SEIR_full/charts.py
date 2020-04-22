@@ -384,3 +384,38 @@ def plot_respiration_cases(res_mdl):
 	ax.set_xlabel('Time [d]', fontsize=35)
 	plt.show()
 
+def plot_hospitalizations_calibration(res_mdl,data,date_lst, start_date, end_date, tracking='hosp'):
+
+	# index to cut model's data
+	start_idx = int(np.where(date_lst == start_date)[0])
+	end_idx = int(np.where(date_lst == end_date)[0])
+	# print(start_idx)
+	# print(end_idx)
+	# creating DF
+	if tracking == 'hosp':
+		model_data_cal = res_mdl['H'][start_idx:end_idx + 1].sum(axis=1) * pop_israel
+		y_label = 'Number of hospitalizations'
+	elif tracking == 'vents':
+		model_data_cal = res_mdl['Vents'][start_idx:end_idx + 1].sum(axis=1) * pop_israel
+		y_label = 'Number of Ventilators in use'
+
+	plot_dict={}
+	plot_dict['Model'] = model_data_cal
+	plot_dict['date'] = date_lst[start_idx:end_idx + 1]
+	plot_dict['Data'] = data
+
+	# print('len model:',len(model_data_cal))
+	# print('len date:', len(date_lst[start_idx:end_idx+1]))
+	# print('len data:', len(data))
+
+	plot_df = pd.DataFrame.from_dict(plot_dict)
+	plot_df.set_index('date',inplace=True)
+
+	# Plot
+	fig = plt.figure()
+	ax = plt.subplot()
+	plot_df.plot(style=['-', '.'], ax=ax)
+	ax.set_title('Country level calibration plot')
+	ax.set_ylabel(y_label)
+
+	return fig, ax
