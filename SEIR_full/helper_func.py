@@ -149,7 +149,7 @@ def MSE(
 	:param model_data_processed:
 	:return:
 	"""
-	mse = (((data - model_data_processed[:data.shape[0],:].copy()) ** 2).mean(axis=0)).sum()
+	mse = (((data - model_data_processed) ** 2).mean(axis=0)).sum()
 	return mse
 
 def shrink_array_sum(
@@ -315,3 +315,21 @@ def print_stat_fit_behave(fit_results_object):
 																				  fit_results_object.x[4],
 																				  fit_results_object.x[5]))
 	print('num of sampling the target function:', fit_results_object.nfev)
+
+
+def print_stat_fit_hosp(fit_results_object, tracking='hosp'):
+
+	"""The function gets sci optimization results object and print additional info about the optimization
+	:param fit_results_object:
+	:return:
+	"""
+	print('minimized value:', fit_results_object.fun)
+	if tracking == 'hosp':
+		print('Fitted parameters:\n Eta={0}\n Nu={1},\n '.format(fit_results_object.x[0],
+																				  fit_results_object.x[1]))
+
+	elif tracking == 'vents':
+		print('Fitted parameters:\n Xi={0}\n Mu={1},\n '.format(fit_results_object.x[0],
+																				  fit_results_object.x[1]))
+	print('num of sampling the target function:', fit_results_object.nfev)
+

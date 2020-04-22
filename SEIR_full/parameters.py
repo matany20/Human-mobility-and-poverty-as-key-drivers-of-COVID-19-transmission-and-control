@@ -18,9 +18,13 @@ import os
 # 	beta_home = pickle.load(pickle_in)
 beta_home = 0.38/9
 
-# hospitalizations data for high risk with/without treatment and low risk:
+# hospitalizations probabilities for age-, risk-groups :
 with open('../Data/parameters/hospitalization.pickle', 'rb') as pickle_in:
 	hospitalizations = pickle.load(pickle_in)
+
+# ventilation probabilities for age-, risk-groups :
+with open('../Data/parameters/vents_proba.pickle', 'rb') as pickle_in:
+	vents_proba = pickle.load(pickle_in)
 
 
 # Asymptomatic fraction
@@ -60,15 +64,24 @@ with open('../Data/parameters/init_pop.pickle', 'rb') as pickle_in:
 # fixing parameter for beta_home
 psi = 1
 
-# new - Transition rate out of H
+# nu - Transition rate out of H
 nu = 1. / 10.
+
+# mu - Transition rate out of Vents
+mu = 1. / 10.
+
+# eta - Transition rate H_latent to H
+eta = 1. / 7.
+
+# xi - Transition rate Vents_latent to Vents
+xi = 1. / 7.
 
 # Epsilon (small noise) - only for non-zero population groups
 with open('../Data/parameters/eps_dict.pickle', 'rb') as pickle_in:
 	eps = pickle.load(pickle_in)
 # esp - model without sectors
 with open('../Data/parameters/eps_by_region.pickle', 'rb') as pickle_in:
-    eps_sector = pickle.load(pickle_in)
+	eps_sector = pickle.load(pickle_in)
 
 # alpha - early infected infection factor
 alpha = 1.0
