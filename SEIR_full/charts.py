@@ -61,6 +61,40 @@ def plot_I_by_age(
 	return fig, ax
 
 
+def plot_R_by_age(
+		mdl_res,
+		with_asym=False,
+		sym_only=False,
+	):
+	"""
+
+	:param mdl_res:
+	:param with_asym:
+	:param sym_only:
+	:return:
+	"""
+
+	R = mdl_res['R']
+
+	# dictionary of arrays to plot
+	plot_dict ={}
+	for age in A.values():
+		plot_dict[age] = R[:, age_dict[age]].sum(axis=1)*pop_israel
+
+	fig = plt.figure(figsize=(15,10))
+	ax = plt.subplot()
+	ax.set_ylabel('Total Recovered cases [#]', fontsize=35)
+	ax.set_title('Recovered Cases Global by Age', fontsize=50)
+	ax.set_xlabel('Time [d]', fontsize=35)
+	plot_df = pd.DataFrame.from_dict(plot_dict)
+
+	# plot
+	plot_df.plot(ax=ax)
+	plt.show()
+	plt.close()
+	return fig, ax
+
+
 def plot_I_by_age_region(
 		mdl_res,
 		with_asym=False,
