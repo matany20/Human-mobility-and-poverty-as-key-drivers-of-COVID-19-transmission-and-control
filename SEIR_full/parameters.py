@@ -10,13 +10,6 @@ import os
 # with open('../model_data/parameters.pickle', 'rb') as pickle_in:
 #     parameters = pickle.load(pickle_in)
 
-# Transmissibility (beta_jk - for each age group, for symptomatic/asymptomatic)
-# beta = parameters['beta']
-
-# Beta_home - home transmissibility:
-# with open('../Data/parameters/beta_home.pickle', 'rb') as pickle_in:
-# 	beta_home = pickle.load(pickle_in)
-beta_home = 0.38/9
 
 # hospitalizations probabilities for age-, risk-groups :
 with open('../Data/parameters/hospitalization.pickle', 'rb') as pickle_in:
@@ -25,7 +18,6 @@ with open('../Data/parameters/hospitalization.pickle', 'rb') as pickle_in:
 # ventilation probabilities for age-, risk-groups :
 with open('../Data/parameters/vents_proba.pickle', 'rb') as pickle_in:
 	vents_proba = pickle.load(pickle_in)
-
 
 # Asymptomatic fraction
 with open('../Data/parameters/f0_full.pickle', 'rb') as pickle_in:
@@ -45,7 +37,28 @@ with open('../Data/parameters/stay_home_idx.pickle', 'rb') as pickle_in:
 
 # routine vector behavior model
 with open('../Data/parameters/routine_t.pickle', 'rb') as pickle_in:
-    not_routine = pickle.load(pickle_in)
+	not_routine = pickle.load(pickle_in)
+
+# Population size
+with open('../Data/parameters/init_pop.pickle', 'rb') as pickle_in:
+	population_size = pickle.load(pickle_in)
+
+# Epsilon (small noise) - only for non-zero population groups
+with open('../Data/parameters/eps_dict.pickle', 'rb') as pickle_in:
+	eps = pickle.load(pickle_in)
+
+# esp - model without sectors
+with open('../Data/parameters/eps_by_region.pickle', 'rb') as pickle_in:
+	eps_sector = pickle.load(pickle_in)
+
+
+# Transmissibility (beta_jk - for each age group, for symptomatic/asymptomatic)
+# beta = parameters['beta']
+
+# Beta_home - home transmissibility:
+# with open('../Data/parameters/beta_home.pickle', 'rb') as pickle_in:
+# 	beta_home = pickle.load(pickle_in)
+beta_home = 0.38/9
 
 #  gama - transition rate between Is,Ia to R
 gama = 1. / 7.
@@ -56,32 +69,20 @@ delta = 1. / 2.
 # sigma - transition rate E to Ie
 sigma = 1. / 4.4
 
-
-# Population size
-with open('../Data/parameters/init_pop.pickle', 'rb') as pickle_in:
-	population_size = pickle.load(pickle_in)
-
 # fixing parameter for beta_home
 psi = 1
 
 # nu - Transition rate out of H
-nu = 1. / 10.
+nu = 0.07247553272296633
 
 # mu - Transition rate out of Vents
-mu = 1. / 10.
+mu = 0.07142857142857142
 
 # eta - Transition rate H_latent to H
-eta = 1. / 7.
+eta = 0.8676140711537818
 
 # xi - Transition rate Vents_latent to Vents
-xi = 1. / 7.
-
-# Epsilon (small noise) - only for non-zero population groups
-with open('../Data/parameters/eps_dict.pickle', 'rb') as pickle_in:
-	eps = pickle.load(pickle_in)
-# esp - model without sectors
-with open('../Data/parameters/eps_by_region.pickle', 'rb') as pickle_in:
-	eps_sector = pickle.load(pickle_in)
+xi = 0.23638829809201067
 
 # alpha - early infected infection factor
 alpha = 1.0

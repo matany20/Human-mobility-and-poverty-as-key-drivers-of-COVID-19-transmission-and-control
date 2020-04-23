@@ -61,6 +61,40 @@ def plot_I_by_age(
 	return fig, ax
 
 
+def plot_R_by_age(
+		mdl_res,
+		with_asym=False,
+		sym_only=False,
+	):
+	"""
+
+	:param mdl_res:
+	:param with_asym:
+	:param sym_only:
+	:return:
+	"""
+
+	R = mdl_res['R']
+
+	# dictionary of arrays to plot
+	plot_dict ={}
+	for age in A.values():
+		plot_dict[age] = R[:, age_dict[age]].sum(axis=1)*pop_israel
+
+	fig = plt.figure(figsize=(15,10))
+	ax = plt.subplot()
+	ax.set_ylabel('Total Recovered cases [#]', fontsize=35)
+	ax.set_title('Recovered Cases Global by Age', fontsize=50)
+	ax.set_xlabel('Time [d]', fontsize=35)
+	plot_df = pd.DataFrame.from_dict(plot_dict)
+
+	# plot
+	plot_df.plot(ax=ax)
+	plt.show()
+	plt.close()
+	return fig, ax
+
+
 def plot_I_by_age_region(
 		mdl_res,
 		with_asym=False,
@@ -292,13 +326,16 @@ def make_respiratory_warning(
 		res_mdl,
 		days_of_inter,
 		time=14,
-		thresh=700
+		thresh=2000
 ):
-	ubRespiration = res_mdl['H'].sum(axis=1)
+	the_values = [2000, 2500, 2700, 2900, 3250, 3540, 3830, 4120, 4870]
+	ubRespiration = res_mdl['Vents'].sum(axis=1)
 	ubRespiration = ubRespiration[days_of_inter:] * pop_israel
 	x = ubRespiration[time:]
 	y = ubRespiration[:-time]
-	max_idx = x.argmax()
+
+	# max_idx = x.argmax()
+	max_idx = len(x[x < the_values[-1]])+1
 	x = x[:max_idx]
 	y = y[:max_idx]
 
@@ -326,29 +363,41 @@ def make_respiratory_warning(
 	ax.set_xlim([x.min(), x.max()])
 	ax.set_ylim([y.min(), y.max()])
 	ax.set_xlabel('רתומ םימשנומ ףס', fontsize=35)
-	str1 = '\n' + ' הארתהל םימשנומ רפסמ'
-	str2 = 'שארמ םימי' + str(time)
-	ax.set_ylabel(str2 + str1, fontsize=35)
+	str1 = '\n' + ' תוינידמ יונישל םימשנומ רפסמ'
+	ax.set_ylabel(str1, fontsize=35)
 	ax.set_title('ןוחטב ףס', fontsize=50)
-	xticks = list(range(thresh, int(x.min()), -200)) + list(
-		range(thresh, int(x.max()), 200))
+	# xticks = list(range(thresh, int(x.min()), -200)) + list(
+	# 	range(thresh, int(x.max()), 200))
+	xticks = the_values
 	ax.set_xticks(xticks)
+	yticks = [find_y(x, y, val) for val in the_values]
+	ax.set_yticks(yticks)
 	if thresh < x.max():
 		ax.scatter(x=[thresh], y=[find_y(x, y, thresh)], c='r', s=400, zorder=4)
 
 	ax.plot(x, y, c='k', linewidth=10, zorder=3)
-	plt_malben(ax, x, y, range(thresh, thresh + 1200, 400), 2)
+	plt_malben(ax, x, y, [2000, 2500, 2700, 2900, 3250, 3540, 3830, 4120, 4870], 2)
 	plt.show()
 	plt.rcParams.update({'font.size': 20})
 
 
 def plot_respiration_cases(res_mdl):
 	fig, ax = plt.subplots(figsize=(15, 10))
-	ax.plot(((res_mdl['H']).sum(axis=1))*pop_israel)
+	ax.plot(((res_mdl['Vents']).sum(axis=1))*pop_israel+60)
 	ax.set_ylabel('Resipratory cases [#]', fontsize=35)
 	ax.set_title('Respiratory Cases Global', fontsize=50)
 	ax.set_xlabel('Time [d]', fontsize=35)
 	plt.show()
+
+
+def plot_hospitalization_cases(res_mdl):
+	fig, ax = plt.subplots(figsize=(15, 10))
+	ax.plot(((res_mdl['H']).sum(axis=1))*pop_israel)
+	ax.set_ylabel('Hospitalization cases [#]', fontsize=35)
+	ax.set_title('Hospitalization Cases Global', fontsize=50)
+	ax.set_xlabel('Time [d]', fontsize=35)
+	plt.show()
+
 
 def plot_hospitalizations_calibration(res_mdl,data,date_lst, start_date, end_date, tracking='hosp'):
 
