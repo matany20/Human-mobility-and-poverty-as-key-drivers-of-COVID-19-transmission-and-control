@@ -1,16 +1,17 @@
 from .indices import *
 from .helper_func import *
 from .parameters import *
+from .charts import *
 import pandas as pd
 import numpy as np
 from scipy import optimize
 import itertools
 import pickle
 
-
 #######################
 # ---- Model Class---- #
 #######################
+
 
 class Model_behave:
 

@@ -378,11 +378,21 @@ def make_respiratory_warning(
 
 def plot_respiration_cases(res_mdl):
 	fig, ax = plt.subplots(figsize=(15, 10))
-	ax.plot(((res_mdl['H']).sum(axis=1))*pop_israel)
+	ax.plot(((res_mdl['Vents']).sum(axis=1))*pop_israel)
 	ax.set_ylabel('Resipratory cases [#]', fontsize=35)
 	ax.set_title('Respiratory Cases Global', fontsize=50)
 	ax.set_xlabel('Time [d]', fontsize=35)
 	plt.show()
+
+
+def plot_hospitalization_cases(res_mdl):
+	fig, ax = plt.subplots(figsize=(15, 10))
+	ax.plot(((res_mdl['H']).sum(axis=1))*pop_israel)
+	ax.set_ylabel('Hospitalization cases [#]', fontsize=35)
+	ax.set_title('Hospitalization Cases Global', fontsize=50)
+	ax.set_xlabel('Time [d]', fontsize=35)
+	plt.show()
+
 
 def plot_hospitalizations_calibration(res_mdl,data,date_lst, start_date, end_date, tracking='hosp'):
 

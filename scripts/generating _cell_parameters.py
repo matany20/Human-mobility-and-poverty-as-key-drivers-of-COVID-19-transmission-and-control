@@ -73,9 +73,9 @@ pop_dist = pop_dist[['אזור 2630', 'גילאים'] + ages_list]
 pop_dist.columns = ['id'] + list(pop_dist.iloc[0, 1:])
 pop_dist = pop_dist.drop([0, 2631, 2632, 2633])
 pop_dist['tot_pop'] = pop_dist.iloc[:, 1:].sum(axis=1)
-pop_dist['tot_pop'][pop_dist['tot_pop'] == 0] = 1
+pop_dist['tot_pop'].loc[pop_dist['tot_pop'] == 0] = 1
 pop_dist = pop_dist.iloc[:,1:-1].div(pop_dist['tot_pop'], axis=0).join(pop_dist['id']).join(pop_dist['tot_pop'])
-pop_dist['tot_pop'][pop_dist['tot_pop'] == 1] = 0
+pop_dist['tot_pop'].loc[pop_dist['tot_pop'] == 1] = 0
 pop_dist['tot_pop'] = pop_dist['tot_pop']/pop_dist['tot_pop'].sum()
 pop_dist.iloc[:,:-2] = pop_dist.iloc[:,:-2].mul(pop_dist['tot_pop'], axis=0)
 
@@ -119,9 +119,9 @@ pop_dist = pop_dist[['אזור 2630', 'גילאים'] + ages_list]
 pop_dist.columns = ['id'] + list(pop_dist.iloc[0,1:])
 pop_dist = pop_dist.drop([0, 2631, 2632, 2633])
 pop_dist['tot_pop'] = pop_dist.iloc[:, 1:].sum(axis=1)
-pop_dist['tot_pop'][pop_dist['tot_pop'] == 0] = 1
+pop_dist['tot_pop'].loc[pop_dist['tot_pop'] == 0] = 1
 pop_dist = pop_dist.iloc[:,1:-1].div(pop_dist['tot_pop'], axis=0).join(pop_dist['id']).join(pop_dist['tot_pop'])
-pop_dist['tot_pop'][pop_dist['tot_pop'] == 1] = 0
+pop_dist['tot_pop'].loc[pop_dist['tot_pop'] == 1] = 0
 pop_dist['tot_pop'] = pop_dist['tot_pop']/pop_dist['tot_pop'].sum()
 pop_dist.iloc[:,:-2] = pop_dist.iloc[:,:-2].mul(pop_dist['tot_pop'], axis=0)
 pop_dist = pop_dist[['id', 'tot_pop']]
@@ -186,8 +186,8 @@ if cell_name=='20':
 		'Orthodox'] * (religion2taz['orth_factor'] - 1)
 	religion2taz['Muslim'] = religion2taz['Muslim'] * religion2taz[
 		'arab_factor']
-	religion2taz = religion2taz.groupby(by='new_id').apply(make_pop_religion)
 
+religion2taz = religion2taz.groupby(by='new_id').apply(make_pop_religion)
 tmp = religion2taz[['Druze', 'Other', 'Muslim', 'Christian', 'Jewish']].sum(axis=1)
 tmp.loc[tmp == 0] = 1
 religion2taz = religion2taz.divide(tmp, axis=0)
@@ -249,9 +249,9 @@ pop_dist = pop_dist[['אזור 2630', 'גילאים'] + ages_list]
 pop_dist.columns = ['id'] + list(pop_dist.iloc[0,1:])
 pop_dist = pop_dist.drop([0, 2631, 2632, 2633])
 pop_dist['tot_pop'] = pop_dist.iloc[:, 1:].sum(axis=1)
-pop_dist['tot_pop'][pop_dist['tot_pop'] == 0] = 1
+pop_dist['tot_pop'].loc[pop_dist['tot_pop'] == 0] = 1
 pop_dist = pop_dist.iloc[:,1:-1].div(pop_dist['tot_pop'], axis=0).join(pop_dist['id']).join(pop_dist['tot_pop'])
-pop_dist['tot_pop'][pop_dist['tot_pop'] == 1] = 0
+pop_dist['tot_pop'].loc[pop_dist['tot_pop'] == 1] = 0
 pop_dist['tot_pop'] = pop_dist['tot_pop']/pop_dist['tot_pop'].sum()
 pop_dist.iloc[:,:-2] = pop_dist.iloc[:,:-2].mul(pop_dist['tot_pop'], axis=0)
 pop_dist = pop_dist[['id', 'tot_pop']]
@@ -266,7 +266,7 @@ taz2sick.to_csv('../Data/demograph/sick_prop.csv')
 
 ### Data loading
 # import data:
-with (open('../Data/division_choice/'+ cell_name + '/mat_macro_model_df.pickle', 'rb')) as openfile:
+with (open('../Data/division_choice/' + cell_name + '/mat_macro_model_df.pickle', 'rb')) as openfile:
 	OD_dict = pickle.load(openfile)
 
 base_leisure = pd.read_csv('../Data/raw/leisure_mtx.csv',index_col=0)
@@ -287,14 +287,20 @@ age_dist_area = pd.read_csv('../Data/demograph/age_dist_area.csv',index_col=0)
 home_secularism = pd.read_excel('../Data/raw/secularism_base_home.xlsx',index_col=0)
 home_haredi = pd.read_excel('../Data/raw/haredi_base_home.xlsx',index_col=0)
 home_arabs = pd.read_excel('../Data/raw/arabs_base_home.xlsx',index_col=0)
-# fix_shahaf_bug
-if cell_name=='250':
-    if len(str(OD_dict[list(OD_dict.keys())[0]].columns[0]))==6:
-        for k in OD_dict.keys():
-            OD_dict[k].columns = pd.Index(G.values())
-    if len(str(OD_dict[list(OD_dict.keys())[0]].index[0]))==6:
-        for k in OD_dict.keys():
-            OD_dict[k].index = pd.Index(G.values())
+
+# make sure index of area is string
+for k in OD_dict.keys():
+    OD_dict[k].columns = pd.Index(G.values())
+    OD_dict[k].index = pd.Index(G.values())
+
+# # fix_shahaf_bug
+# if cell_name=='250':
+#     if len(str(OD_dict[list(OD_dict.keys())[0]].columns[0]))==6:
+#         for k in OD_dict.keys():
+#             OD_dict[k].columns = pd.Index(G.values())
+#     if len(str(OD_dict[list(OD_dict.keys())[0]].index[0]))==6:
+#         for k in OD_dict.keys():
+#             OD_dict[k].index = pd.Index(G.values())
 
 ### Preprocess stay-home
 # reordering and expanding vector for each period:
@@ -311,6 +317,7 @@ stay_home_idx_no_bb = stay_home_idx_no_bb['mean'].values
 stay_home_idx_no_bb[1] = stay_home_idx_no_bb[0]
 
 # expanding vectors:
+print(stay_home_idx_school)
 stay_home_idx_school = expand_partial_array(mapping_dic=region_ga_dict,array_to_expand=stay_home_idx_school,
                                               size=len(GA))
 stay_home_idx_work = expand_partial_array(mapping_dic=region_ga_dict,array_to_expand=stay_home_idx_work,
@@ -439,7 +446,7 @@ eye_OD = OD_dict['routine', 1].copy()
 
 for col in eye_OD.columns:
     eye_OD[col].values[:] = 0
-eye_OD.values[[np.arange(eye_OD.shape[0])]*2] = 1
+eye_OD.values[tuple([np.arange(eye_OD.shape[0])]*2)] = 1
 ############ 21.2-14.3 #############
 full_work_routine = create_C_mtx_leisure_work(
     od_mat=OD_dict['routine',1],
@@ -528,7 +535,7 @@ f_init = np.zeros(len(list(itertools.product(R.values(), A.values()))))
 for i in [1,2,3]:
 	f_tmp = f_init.copy()
 	f_tmp[9:] = asymp['Scenario '+ str(i)].values[:-1]
-	f0_full['Scenario'+ str(i)] = expand_partial_array(risk_age_dict, f_tmp)
+	f0_full['Scenario' + str(i)] = expand_partial_array(risk_age_dict, f_tmp)
 # Save
 try:
 	os.mkdir('../Data/parameters')
@@ -621,11 +628,18 @@ with open('../Data/parameters/eps_by_region.pickle', 'wb') as handle:
 	pickle.dump(eps_t_region, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 ### hospitalization
-hosp_init = pd.read_csv('../Data/raw/vent_proba.csv')
-hosp = expand_partial_array(age_dict, hosp_init['vent_pr'].values)
+hosp_init = pd.read_csv('../Data/raw/hospitalizations.csv')
+hosp = expand_partial_array(risk_age_dict, hosp_init['pr_hosp'].values)
 # Save
 with open('../Data/parameters/hospitalization.pickle', 'wb') as handle:
 	pickle.dump(hosp, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+### Ventilation
+vents_init = pd.read_csv('../Data/raw/vent_proba.csv')
+vent = expand_partial_array(risk_age_dict, vents_init['pr_vents'].values)
+# Save
+with open('../Data/parameters/vents_proba.pickle', 'wb') as handle:
+	pickle.dump(vent, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 ### Calibration contact matrix
 full_mtx_home = scipy.sparse.load_npz('../Data/base_contact_mtx/full_home.npz')
@@ -710,6 +724,7 @@ with open('../Data/parameters/C_calibration.pickle', 'wb') as handle:
 ### Haredim vector
 hared_dis = pd.read_csv('../Data/demograph/religion_dis.csv', index_col=0)[['cell_id','Orthodox']].copy()
 hared_dis.set_index('cell_id', inplace=True)
+hared_dis.index = hared_dis.index.astype(str)
 # Creating model orthodox dist. and save it as pickle
 model_orthodox_dis = np.zeros(len(GA))
 for i in GA.keys():
