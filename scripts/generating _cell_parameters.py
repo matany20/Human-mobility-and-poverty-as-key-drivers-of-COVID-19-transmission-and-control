@@ -535,7 +535,7 @@ f_init = np.zeros(len(list(itertools.product(R.values(), A.values()))))
 for i in [1,2,3]:
 	f_tmp = f_init.copy()
 	f_tmp[9:] = asymp['Scenario '+ str(i)].values[:-1]
-	f0_full['Scenario' + str(i)] = expand_partial_array(risk_age_dict, f_tmp)
+	f0_full['Scenario' + str(i)] = expand_partial_array(risk_age_dict, f_tmp, len(N))
 # Save
 try:
 	os.mkdir('../Data/parameters')
@@ -553,7 +553,7 @@ age_dist_area.drop(['Unnamed: 0'],axis=1, inplace=True)
 age_dist_area.set_index('cell_id', inplace=True)
 age_dist_area = age_dist_area.stack()
 
-init_pop = expand_partial_array(region_age_dict, age_dist_area.values)
+init_pop = expand_partial_array(region_age_dict, age_dist_area.values, len(N))
 init_pop[inter_dict['Intervention']]=0
 
 risk_pop = pd.read_csv('../Data/raw/risk_dist.csv')
@@ -629,14 +629,14 @@ with open('../Data/parameters/eps_by_region.pickle', 'wb') as handle:
 
 ### hospitalization
 hosp_init = pd.read_csv('../Data/raw/hospitalizations.csv')
-hosp = expand_partial_array(risk_age_dict, hosp_init['pr_hosp'].values)
+hosp = expand_partial_array(risk_age_dict, hosp_init['pr_hosp'].values, len(N))
 # Save
 with open('../Data/parameters/hospitalization.pickle', 'wb') as handle:
 	pickle.dump(hosp, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 ### Ventilation
 vents_init = pd.read_csv('../Data/raw/vent_proba.csv')
-vent = expand_partial_array(risk_age_dict, vents_init['pr_vents'].values)
+vent = expand_partial_array(risk_age_dict, vents_init['pr_vents'].values, len(N))
 # Save
 with open('../Data/parameters/vents_proba.pickle', 'wb') as handle:
 	pickle.dump(vent, handle, protocol=pickle.HIGHEST_PROTOCOL)

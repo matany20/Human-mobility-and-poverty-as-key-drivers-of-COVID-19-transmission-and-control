@@ -631,7 +631,8 @@ class Model_behave:
 			# fitting lambda_t size to (720X1)
 			lambda_t = expand_partial_array(
 				mapping_dic=region_age_dict,
-				array_to_expand=lambda_t
+				array_to_expand=lambda_t,
+				size=len(N),
 			)
 
 			# R(t)
