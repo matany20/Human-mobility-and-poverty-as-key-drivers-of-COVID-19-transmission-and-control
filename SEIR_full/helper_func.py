@@ -304,6 +304,25 @@ def calculate_force_matriceis(
 	}
 
 
+def isolate_areas(base_mtx, isolation_mtx, area_lst):
+	"""
+	The function gets base_mtx and switches its rows and columns representing the areas in area_lst with thw
+	matching rows and columns from isolation_mtx.
+	:param base_mtx: numpy array matrix
+	:param isolation_matx: numpy array matrix with the same shape as base_mtx
+	:param area_lst: areas to put in/out quarantine
+	:return: base_mtx with the matching rows and columns from isolation_mtx
+	"""
+	base_mtx = base_mtx.copy()
+
+	for area in area_lst:
+		# switch rows:
+		base_mtx[region_ga_dict[area], :] = isolation_mtx[region_ga_dict[area], :]
+		# switch columns:
+		base_mtx[:, region_ga_dict[area]] = isolation_mtx[:, region_ga_dict[area]]
+	return base_mtx
+
+
 def print_stat_fit_behave(fit_results_object):
 
 	"""The function gets sci optimization results object and print additional info about the optimization
