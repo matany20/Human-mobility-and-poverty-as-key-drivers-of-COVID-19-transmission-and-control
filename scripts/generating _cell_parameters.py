@@ -12,7 +12,7 @@ from scipy.sparse import csr_matrix
 import sys
 import os
 from SEIR_full.indices import *
-from SEIR_full.helper_func import *
+from SEIR_full.utils import *
 
 #############################################
 # Generating parameters files based on tazs #
