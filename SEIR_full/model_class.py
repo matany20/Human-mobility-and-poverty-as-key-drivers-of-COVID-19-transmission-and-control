@@ -1,12 +1,9 @@
-from .indices import *
 from .utils import *
 from .parameters import *
 from .plot_utils import *
 import pandas as pd
 import numpy as np
 from scipy import optimize
-import itertools
-import pickle
 
 #######################
 # ---- Model Class---- #
@@ -17,6 +14,7 @@ class Model_behave:
 
 	def __init__(
 			self,
+			ind,
 			beta_j=np.array(
 				[0.02927922, 0.02927922, 0.02927922, 0.04655266, 0.04655266,
 				0.05775265, 0.05775265, 0.18444245, 0.18444245]),
@@ -58,9 +56,12 @@ class Model_behave:
 		:param eps:
 		:param f:
 		"""
+		# define indices
+		self.ind = ind
+
 		# defining parameters:
 		self.init_region_pop = shrink_array_sum(
-			mapping_dic=region_dict,
+			mapping_dic=ind.region_dict,
 			array_to_shrink=population_size
 		)
 
@@ -114,34 +115,34 @@ class Model_behave:
 		self.S.append(population_size.copy())
 
 		# Initialize R - with only the naturally immune individuals
-		self.R.append(np.zeros(len(N)))
+		self.R.append(np.zeros(len(self.ind.N)))
 
 		# subtract R0 from S0:
 		self.S[-1] -= self.R[-1]
 
 		# Initialize E
-		self.E.append(np.zeros(len(N)))
+		self.E.append(np.zeros(len(self.ind.N)))
 
 		# Initialize I (early)
-		self.Ie.append(np.zeros(len(N)))
+		self.Ie.append(np.zeros(len(self.ind.N)))
 
 		# Initialize I (asymptomatic)
-		self.Ia.append(np.zeros(len(N)))
+		self.Ia.append(np.zeros(len(self.ind.N)))
 
 		# Initialize I (symptomatic)
-		self.Is.append(np.zeros(len(N)))
+		self.Is.append(np.zeros(len(self.ind.N)))
 
 		# Subtract E(0) and Ie(0) from S(0)
 		self.S[-1] -= (self.E[-1] + self.Ie[-1])
 
 		# Zero newly infected on the first day of the season
-		self.new_Is.append(np.zeros(len(N)))
+		self.new_Is.append(np.zeros(len(self.ind.N)))
 
 		# Initialize H(0), Vents(0), H_latent(0), Vents_latent(0) tracking compartment
-		self.H.append(np.zeros(len(N)))
-		self.Vents.append(np.zeros(len(N)))
-		self.Hosp_latent.append(np.zeros(len(N)))
-		self.Vents_latent.append(np.zeros(len(N)))
+		self.H.append(np.zeros(len(self.ind.N)))
+		self.Vents.append(np.zeros(len(self.ind.N)))
+		self.Hosp_latent.append(np.zeros(len(self.ind.N)))
+		self.Vents_latent.append(np.zeros(len(self.ind.N)))
 
 
 
@@ -344,41 +345,41 @@ class Model_behave:
 			data_specific = data/pop_israel
 			loss = np.log(MSE(data_specific, model_for_loss))
 
-		# elif loss_func == "BIN":
-		# 	# fixing data to be proportion of tests
-		# 	data_specific = data.copy()
-		# 	data_specific[1] = (data_specific[1] / data_specific[0])
-		# 	data_specific = np.nan_to_num(data_specific,
-		# 								  nan=0,
-		# 								  posinf=0,
-		# 								  neginf=0)
-		# 	# fixing model_out to be proportion of cell j,k
-		# 	pop_jk = shrink_array_sum(region_age_dict, self.population_size)
-		# 	model_for_loss_specific = model_for_loss.copy()
-		# 	model_for_loss_specific = model_for_loss_specific / pop_jk
-		# 	loss = ML_Bin(data_specific, model_for_loss_specific, approx=False,
-		# 				  factor=factor)
-		#
-		# elif loss_func == "POIS":
-		# 	# fixing data to be proportion of tests
-		# 	data_specific = data.copy()
-		# 	data_specific[1] = (data_specific[1] / data_specific[0])
-		# 	data_specific = np.nan_to_num(data_specific,
-		# 								  nan=0,
-		# 								  posinf=0,
-		# 								  neginf=0)
-		# 	# fixing model_out to be proportion of cell j,k
-		# 	pop_jk = shrink_array_sum(region_age_dict, self.population_size)
-		# 	model_for_loss_specific = model_for_loss.copy()
-		# 	model_for_loss_specific = model_for_loss_specific / pop_jk
-		# 	loss = ML_Bin(data_specific, model_for_loss_specific, approx=True)
-		#
-		# elif loss_func == "POIS_NAIV":
-		# 	# fixing data to be proportion of israel citizens
-		# 	data_specific = data[1]
-		# 	# fixing model output to be new sick people
-		# 	model_for_loss_specific = model_for_loss* 9136000
-		# 	loss = ML_Pois_Naiv(data_specific, model_for_loss_specific)
+		elif loss_func == "BIN":
+			# fixing data to be proportion of tests
+			data_specific = data.copy()
+			data_specific[1] = (data_specific[1] / data_specific[0])
+			data_specific = np.nan_to_num(data_specific,
+										  nan=0,
+										  posinf=0,
+										  neginf=0)
+			# fixing model_out to be proportion of cell j,k
+			pop_jk = shrink_array_sum(self.ind.region_age_dict, self.population_size)
+			model_for_loss_specific = model_for_loss.copy()
+			model_for_loss_specific = model_for_loss_specific / pop_jk
+			loss = ML_Bin(data_specific, model_for_loss_specific, approx=False,
+						  factor=factor)
+
+		elif loss_func == "POIS":
+			# fixing data to be proportion of tests
+			data_specific = data.copy()
+			data_specific[1] = (data_specific[1] / data_specific[0])
+			data_specific = np.nan_to_num(data_specific,
+										  nan=0,
+										  posinf=0,
+										  neginf=0)
+			# fixing model_out to be proportion of cell j,k
+			pop_jk = shrink_array_sum(self.ind.region_age_dict, self.population_size)
+			model_for_loss_specific = model_for_loss.copy()
+			model_for_loss_specific = model_for_loss_specific / pop_jk
+			loss = ML_Bin(data_specific, model_for_loss_specific, approx=True)
+
+		elif loss_func == "POIS_NAIV":
+			# fixing data to be proportion of israel citizens
+			data_specific = data[1]
+			# fixing model output to be new sick people
+			model_for_loss_specific = model_for_loss* 9136000
+			loss = ML_Pois_Naiv(data_specific, model_for_loss_specific)
 
 		self.reset()
 		if self.fit_iter_count % 50 == 0:
@@ -439,11 +440,11 @@ class Model_behave:
 		# 	print('beta_behave: ', tpl[5])
 		# 	print('theta: ', tpl[4])
 
-		model_results_cal = np.zeros((days_in_season + 1, len(region_age_dict)))
+		model_results_cal = np.zeros((days_in_season + 1, len(self.ind.region_age_dict)))
 
 		# Calculated total symptomatic (high+low) per age group (adding as columns)
-		for i, key in enumerate(region_age_dict.keys()):
-			model_results_cal[:, i] = new_cases_model[:, region_age_dict[key]].sum(axis=1)
+		for i, key in enumerate(self.ind.region_age_dict.keys()):
+			model_results_cal[:, i] = new_cases_model[:, self.ind.region_age_dict[key]].sum(axis=1)
 
 		# Taking relevant time frame from model
 		start_idx = int(np.where(date_lst == start)[0])
@@ -464,7 +465,7 @@ class Model_behave:
 										  posinf=0,
 										  neginf=0)
 			# fixing model_out to be proportion of cell j,k
-			pop_jk = shrink_array_sum(region_age_dict, self.population_size)
+			pop_jk = shrink_array_sum(self.ind.region_age_dict, self.population_size)
 			model_for_loss_specific = model_for_loss.copy()
 			model_for_loss_specific = model_for_loss_specific / pop_jk
 			loss = ML_Bin(data_specific, model_for_loss_specific, approx=False,
@@ -479,7 +480,7 @@ class Model_behave:
 										  posinf=0,
 										  neginf=0)
 			# fixing model_out to be proportion of cell j,k
-			pop_jk = shrink_array_sum(region_age_dict, self.population_size)
+			pop_jk = shrink_array_sum(self.ind.region_age_dict, self.population_size)
 			model_for_loss_specific = model_for_loss.copy()
 			model_for_loss_specific = model_for_loss_specific / pop_jk
 			loss = ML_Bin(data_specific, model_for_loss_specific, approx=True)
@@ -526,14 +527,14 @@ class Model_behave:
 		"""
 		# Shifting population in compartments:
 		if prop_dict is not None:
-			self.S.append(divide_population(prop_dict, self.S.pop()))
-			self.E.append(divide_population(prop_dict, self.E.pop()))
-			self.Ie.append(divide_population(prop_dict, self.Ie.pop()))
-			self.Ia.append(divide_population(prop_dict, self.Ia.pop()))
-			self.Is.append(divide_population(prop_dict, self.Is.pop()))
-			self.R.append(divide_population(prop_dict, self.R.pop()))
+			self.S.append(divide_population(self.ind, prop_dict, self.S.pop()))
+			self.E.append(divide_population(self.ind, prop_dict, self.E.pop()))
+			self.Ie.append(divide_population(self.ind, prop_dict, self.Ie.pop()))
+			self.Ia.append(divide_population(self.ind, prop_dict, self.Ia.pop()))
+			self.Is.append(divide_population(self.ind, prop_dict, self.Is.pop()))
+			self.R.append(divide_population(self.ind, prop_dict, self.R.pop()))
 		# make sure no new sick will pop up during intervention
-		self.eps = np.zeros((days_in_season, len(N)))
+		self.eps = np.zeros((days_in_season, len(self.ind.N)))
 
 		return self.predict(
 			C=C,
@@ -590,9 +591,9 @@ class Model_behave:
 			nu = self.nu
 
 		beta_j = expand_partial_array(
-			mapping_dic=age_ga_dict,
+			mapping_dic=self.ind.age_ga_dict,
 			array_to_expand=beta_j,
-			size=len(GA)
+			size=len(self.ind.GA)
 		)
 
 		for t in range(days_in_season):
@@ -600,14 +601,14 @@ class Model_behave:
 			# Calculate beta_home factor, current S_region/N_region and expand it
 			# to mach (180X1).
 			beta_home_factor = shrink_array_sum(
-				mapping_dic=region_dict,
+				mapping_dic=self.ind.region_dict,
 				array_to_shrink=self.S[-1]
 			)
 			beta_home_factor = beta_home_factor / self.init_region_pop
 			beta_home_factor = expand_partial_array(
-				mapping_dic=region_ga_dict,
+				mapping_dic=self.ind.region_ga_dict,
 				array_to_expand=beta_home_factor,
-				size=len(GA)
+				size=len(self.ind.GA)
 			)
 
 			# Calculate lambda (High risk symptomatic + Low risk symptomatic +
@@ -619,7 +620,6 @@ class Model_behave:
 				stay_home_idx=stay_home_idx,
 				not_routine=not_routine,
 			)
-
 			lambda_t = (self.beta_home * beta_home_factor * contact_force['home'] +
 					   beta_j * (theta * self.is_haredi + 1 - self.is_haredi) * contact_force['out'])
 
@@ -630,9 +630,9 @@ class Model_behave:
 
 			# fitting lambda_t size to (720X1)
 			lambda_t = expand_partial_array(
-				mapping_dic=region_age_dict,
+				mapping_dic=self.ind.region_age_dict,
 				array_to_expand=lambda_t,
-				size=len(N),
+				size=len(self.ind.N),
 			)
 
 			# R(t)
@@ -718,52 +718,52 @@ class Model_behave:
 					 not_routine['non_inter']['work'][t])
 
 		force_home = ((behave_componnet_inter_no_work * \
-						C['home_inter'][t].T.dot((self.Ie[-1][inter_risk_dict['Intervention', 'Low']] +
-												self.Ie[-1][inter_risk_dict['Intervention', 'High']]) * self.alpha +
-												self.Is[-1][inter_risk_dict['Intervention', 'Low']] +
-												self.Is[-1][inter_risk_dict['Intervention', 'High']] +
-												self.Ia[-1][inter_risk_dict['Intervention', 'Low']] +
-												self.Ia[-1][inter_risk_dict['Intervention', 'High']])) +
+						C['home_inter'][t].T.dot((self.Ie[-1][self.ind.inter_risk_dict['Intervention', 'Low']] +
+												self.Ie[-1][self.ind.inter_risk_dict['Intervention', 'High']]) * self.alpha +
+												self.Is[-1][self.ind.inter_risk_dict['Intervention', 'Low']] +
+												self.Is[-1][self.ind.inter_risk_dict['Intervention', 'High']] +
+												self.Ia[-1][self.ind.inter_risk_dict['Intervention', 'Low']] +
+												self.Ia[-1][self.ind.inter_risk_dict['Intervention', 'High']])) +
 
 					behave_componnet_non_no_work * \
-					(C['home_non'][t].T.dot((self.Ie[-1][inter_risk_dict['Non-intervention', 'Low']] +
-											self.Ie[-1][inter_risk_dict['Non-intervention', 'High']]) * self.alpha +
-											self.Is[-1][inter_risk_dict['Non-intervention', 'Low']] +
-											self.Is[-1][inter_risk_dict['Non-intervention', 'High']] +
-											self.Ia[-1][inter_risk_dict['Non-intervention', 'Low']] +
-											self.Ia[-1][inter_risk_dict['Non-intervention', 'High']])))
+					(C['home_non'][t].T.dot((self.Ie[-1][self.ind.inter_risk_dict['Non-intervention', 'Low']] +
+											self.Ie[-1][self.ind.inter_risk_dict['Non-intervention', 'High']]) * self.alpha +
+											self.Is[-1][self.ind.inter_risk_dict['Non-intervention', 'Low']] +
+											self.Is[-1][self.ind.inter_risk_dict['Non-intervention', 'High']] +
+											self.Ia[-1][self.ind.inter_risk_dict['Non-intervention', 'Low']] +
+											self.Ia[-1][self.ind.inter_risk_dict['Non-intervention', 'High']])))
 
 		force_out = ((behave_componnet_inter_work * \
-					C['work_inter'][t].T.dot((self.Ie[-1][inter_risk_dict['Intervention', 'Low']] +
-											self.Ie[-1][inter_risk_dict['Intervention', 'High']]) * self.alpha +
-											self.Is[-1][inter_risk_dict['Intervention', 'Low']] +
-											self.Is[-1][inter_risk_dict['Intervention', 'High']] +
-											self.Ia[-1][inter_risk_dict['Intervention', 'Low']] +
-											self.Ia[-1][inter_risk_dict['Intervention', 'High']]) +
+					C['work_inter'][t].T.dot((self.Ie[-1][self.ind.inter_risk_dict['Intervention', 'Low']] +
+											self.Ie[-1][self.ind.inter_risk_dict['Intervention', 'High']]) * self.alpha +
+											self.Is[-1][self.ind.inter_risk_dict['Intervention', 'Low']] +
+											self.Is[-1][self.ind.inter_risk_dict['Intervention', 'High']] +
+											self.Ia[-1][self.ind.inter_risk_dict['Intervention', 'Low']] +
+											self.Ia[-1][self.ind.inter_risk_dict['Intervention', 'High']]) +
 
 					(behave_componnet_non_work * \
-					C['work_non'][t].T.dot((self.Ie[-1][inter_risk_dict['Non-intervention', 'Low']] +
-											self.Ie[-1][inter_risk_dict['Non-intervention', 'High']]) * self.alpha +
-											self.Is[-1][inter_risk_dict['Non-intervention', 'Low']] +
-											self.Is[-1][inter_risk_dict['Non-intervention', 'High']] +
-											self.Ia[-1][inter_risk_dict['Non-intervention', 'Low']] +
-											self.Ia[-1][inter_risk_dict['Non-intervention', 'High']])) +
+					C['work_non'][t].T.dot((self.Ie[-1][self.ind.inter_risk_dict['Non-intervention', 'Low']] +
+											self.Ie[-1][self.ind.inter_risk_dict['Non-intervention', 'High']]) * self.alpha +
+											self.Is[-1][self.ind.inter_risk_dict['Non-intervention', 'Low']] +
+											self.Is[-1][self.ind.inter_risk_dict['Non-intervention', 'High']] +
+											self.Ia[-1][self.ind.inter_risk_dict['Non-intervention', 'Low']] +
+											self.Ia[-1][self.ind.inter_risk_dict['Non-intervention', 'High']])) +
 
 					(behave_componnet_inter_no_work * \
-					C['leisure_inter'][t].T.dot((self.Ie[-1][inter_risk_dict['Intervention', 'Low']] +
-												self.Ie[-1][inter_risk_dict['Intervention', 'High']]) * self.alpha +
-												self.Is[-1][inter_risk_dict['Intervention', 'Low']] +
-												self.Is[-1][inter_risk_dict['Intervention', 'High']] +
-												self.Ia[-1][inter_risk_dict['Intervention', 'Low']] +
-												self.Ia[-1][inter_risk_dict['Intervention', 'High']])) +
+					C['leisure_inter'][t].T.dot((self.Ie[-1][self.ind.inter_risk_dict['Intervention', 'Low']] +
+												self.Ie[-1][self.ind.inter_risk_dict['Intervention', 'High']]) * self.alpha +
+												self.Is[-1][self.ind.inter_risk_dict['Intervention', 'Low']] +
+												self.Is[-1][self.ind.inter_risk_dict['Intervention', 'High']] +
+												self.Ia[-1][self.ind.inter_risk_dict['Intervention', 'Low']] +
+												self.Ia[-1][self.ind.inter_risk_dict['Intervention', 'High']])) +
 
 					(behave_componnet_non_no_work * \
-					C['leisure_non'][t].T.dot((self.Ie[-1][inter_risk_dict['Non-intervention', 'Low']] +
-												self.Ie[-1][inter_risk_dict['Non-intervention', 'High']]) * self.alpha +
-												self.Is[-1][inter_risk_dict['Non-intervention', 'Low']] +
-												self.Is[-1][inter_risk_dict['Non-intervention', 'High']] +
-												self.Ia[-1][inter_risk_dict['Non-intervention', 'Low']] +
-												self.Ia[-1][inter_risk_dict['Non-intervention', 'High']]))))
+					C['leisure_non'][t].T.dot((self.Ie[-1][self.ind.inter_risk_dict['Non-intervention', 'Low']] +
+												self.Ie[-1][self.ind.inter_risk_dict['Non-intervention', 'High']]) * self.alpha +
+												self.Is[-1][self.ind.inter_risk_dict['Non-intervention', 'Low']] +
+												self.Is[-1][self.ind.inter_risk_dict['Non-intervention', 'High']] +
+												self.Ia[-1][self.ind.inter_risk_dict['Non-intervention', 'Low']] +
+												self.Ia[-1][self.ind.inter_risk_dict['Non-intervention', 'High']]))))
 		return {
 			'out': force_out,
 			'home': force_home

@@ -13,6 +13,7 @@ from matplotlib.patches import Patch
 ########################
 
 def plot_I_by_age(
+		ind,
 		mdl_res,
 		with_asym=False,
 		sym_only=False,
@@ -31,21 +32,21 @@ def plot_I_by_age(
 	# dictionary of arrays to plot
 	plot_dict ={}
 	if with_asym:
-		for age in A.values():
+		for age in ind.A.values():
 			ylabel = 'sym/asym'
-			plot_dict[age + ' sym'] = Is[:, age_dict[age]].sum(axis=1)*pop_israel
-			plot_dict[age + ' asym'] = Ia[:, age_dict[age]].sum(axis=1)*pop_israel
+			plot_dict[age + ' sym'] = Is[:, ind.age_dict[age]].sum(axis=1)*pop_israel
+			plot_dict[age + ' asym'] = Ia[:, ind.age_dict[age]].sum(axis=1)*pop_israel
 
 	elif sym_only:
 		ylabel = 'sym only'
-		for age in A.values():
-			plot_dict[age + ' sym'] = Is[:, age_dict[age]].sum(axis=1)*pop_israel
+		for age in ind.A.values():
+			plot_dict[age + ' sym'] = Is[:, ind.age_dict[age]].sum(axis=1)*pop_israel
 
 	else:
 		ylabel = 'all'
-		for age in A.values():
-			plot_dict[age] = (Is[:, age_dict[age]].sum(axis=1) + \
-							 Ia[:, age_dict[age]].sum(axis=1))*pop_israel
+		for age in ind.A.values():
+			plot_dict[age] = (Is[:, ind.age_dict[age]].sum(axis=1) + \
+							 Ia[:, ind.age_dict[age]].sum(axis=1))*pop_israel
 
 	fig = plt.figure(figsize=(15,10))
 	ax = plt.subplot()
@@ -62,6 +63,7 @@ def plot_I_by_age(
 
 
 def plot_R_by_age(
+		ind,
 		mdl_res,
 		with_asym=False,
 		sym_only=False,
@@ -78,8 +80,8 @@ def plot_R_by_age(
 
 	# dictionary of arrays to plot
 	plot_dict ={}
-	for age in A.values():
-		plot_dict[age] = R[:, age_dict[age]].sum(axis=1)*pop_israel
+	for age in ind.A.values():
+		plot_dict[age] = R[:, ind.age_dict[age]].sum(axis=1)*pop_israel
 
 	fig = plt.figure(figsize=(15,10))
 	ax = plt.subplot()
@@ -96,6 +98,7 @@ def plot_R_by_age(
 
 
 def plot_I_by_age_region(
+		ind,
 		mdl_res,
 		with_asym=False,
 		sym_only=False,
@@ -117,15 +120,15 @@ def plot_I_by_age_region(
 		fig, axes = plt.subplots(3, 3)
 		for ax, groups in zip(axes.flat, range(9)):
 			plot_dict = {}
-			for age in A.values():
-				for s in G.values():
+			for age in ind.A.values():
+				for s in ind.G.values():
 					plot_dict[s + ' sym'] = Is[
 												:,
-												region_age_dict[s ,age],
+											ind.region_age_dict[s ,age],
 											].sum(axis=1)
 					plot_dict[s + ' asym'] = Ia[
 											 	:,
-											 	region_age_dict[s ,age],
+											 ind.region_age_dict[s ,age],
 											 ].sum(axis=1)
 
 			plot_df = pd.DataFrame.from_dict(plot_dict)
@@ -135,11 +138,11 @@ def plot_I_by_age_region(
 		fig, axes = plt.subplots(3, 3)
 		for ax, groups in zip(axes.flat, range(9)):
 			plot_dict = {}
-			for age in A.values():
-				for s in G.values():
+			for age in ind.A.values():
+				for s in ind.G.values():
 					plot_dict[s + ' sym'] = Is[
 												:,
-												region_age_dict[s ,age],
+											ind.region_age_dict[s ,age],
 											].sum(axis=1)
 
 			plot_df = pd.DataFrame.from_dict(plot_dict)
@@ -149,10 +152,10 @@ def plot_I_by_age_region(
 		fig, axes = plt.subplots(3, 3)
 		for ax, groups in zip(axes.flat, range(9)):
 			plot_dict = {}
-			for age in A.values():
-				for s in G.values():
-					plot_dict[s] = Is[:, age_dict[age]].sum(axis=1) + \
-								   Ia[:, age_dict[age]].sum(axis=1)
+			for age in ind.A.values():
+				for s in ind.G.values():
+					plot_dict[s] = Is[:, ind.age_dict[age]].sum(axis=1) + \
+								   Ia[:, ind.age_dict[age]].sum(axis=1)
 
 			plot_df = pd.DataFrame.from_dict(plot_dict)
 			plot_df.plot(ax=ax)
@@ -166,6 +169,7 @@ def plot_I_by_age_region(
 
 
 def plot_calibrated_model(
+		ind,
 		data,
 		mdl_data,
 		date_list,
@@ -181,15 +185,15 @@ def plot_calibrated_model(
 	:return:
 	"""
 
-	model_tot_dt = np.zeros((season_length + 1, len(A)))
+	model_tot_dt = np.zeros((season_length + 1, len(ind.A)))
 	# Calculated total symptomatic (high+low) per age group (adding as columns)
 	plot_dict = {}
 	plot_dict['dates'] = date_list
-	for i, age_group in enumerate(age_dict.keys()):
-		model_tot_dt[:, i] = mdl_data[:, age_dict[age_group]].sum(axis=1)
-		plot_dict[A[i] + '_mdl'] = mdl_data[
+	for i, age_group in enumerate(ind.age_dict.keys()):
+		model_tot_dt[:, i] = mdl_data[:, ind.age_dict[age_group]].sum(axis=1)
+		plot_dict[ind.A[i] + '_mdl'] = mdl_data[
 									:len(date_list),
-									age_dict[age_group],
+								   ind.age_dict[age_group],
 								   ].sum(axis=1)
 		plot_dict[A[i] + '_dt'] = data[:, i]
 
@@ -200,7 +204,7 @@ def plot_calibrated_model(
 	for ax, groups in zip(axes.flat, range(9)):
 		plot_df.plot(
 			x='dates',
-			y=[A[groups] + '_mdl', A[groups] + '_dt'],
+			y=[ind.A[groups] + '_mdl', ind.A[groups] + '_dt'],
 			style=['-', '.'],
 			ax=ax
 		)
@@ -216,6 +220,7 @@ def plot_calibrated_model(
 	plt.close()
 
 def plot_calibrated_model_region(
+		ind,
 		data,
 		mdl_data,
 		date_list,
@@ -244,7 +249,7 @@ def plot_calibrated_model_region(
 		data_specific[1] = (data[1] / data[0]).fillna(0).replace(
 			[np.inf, -np.inf], 0)
 		# fixing model_out to be proportion of cell j,k
-		pop_jk = shrink_array_sum(region_age_dict, population_size)
+		pop_jk = shrink_array_sum(ind.region_age_dict, population_size)
 		mdl_data_specific = mdl_data.copy()
 		mdl_data_specific = mdl_data_specific / pop_jk
 	elif loss_func == 'POIS_NAIV':
@@ -257,18 +262,18 @@ def plot_calibrated_model_region(
 	start_idx = int(np.where(date_list == start)[0])
 	end_idx = int(np.where(date_list == end)[0])
 	plot_dict = {}
-	for key in region_dict.keys():
-		plot_dict[key + '_mdl'] = mdl_data[start_idx:end_idx+1, region_dict[key]].sum(axis=1) / \
-								  population_size[region_dict[key]].sum()
-		plot_dict[key + '_dt'] = data_specific[:, region_ga_dict[key]].sum(axis=1) / \
-								 population_size[region_dict[key]].sum()
+	for key in ind.region_dict.keys():
+		plot_dict[key + '_mdl'] = mdl_data[start_idx:end_idx+1, ind.region_dict[key]].sum(axis=1) / \
+								  population_size[ind.region_dict[key]].sum()
+		plot_dict[key + '_dt'] = data_specific[:, ind.region_ga_dict[key]].sum(axis=1) / \
+								 population_size[ind.region_dict[key]].sum()
 
 	plot_df = pd.DataFrame.from_dict(plot_dict)
 	plot_df.set_index(date_list[start_idx:end_idx+1],inplace=True)
 
-	fig, axes = plt.subplots(int(np.ceil(len(region_dict)/3)), 3, figsize=(15,15))
+	fig, axes = plt.subplots(int(np.ceil(len(ind.region_dict)/3)), 3, figsize=(15,15))
 
-	for ax, key in zip(axes.flat, region_dict.keys()):
+	for ax, key in zip(axes.flat, ind.region_dict.keys()):
 
 		plot_df.plot(y=[key + '_mdl', key + '_dt'],
 					 style=['-', '.'],
@@ -285,12 +290,13 @@ def plot_calibrated_model_region(
 
 	return fig, axes
 
-def plot_calibrated_total_model(data,
-								mdl_data,
-								date_list,
-								start='2020-03-20',
-								end='2020-04-13'
-								):
+def plot_calibrated_total_model(
+		data,
+		mdl_data,
+		date_list,
+		start='2020-03-20',
+		end='2020-04-13'
+	):
 
 	""" The function gets the results of the model and plot the model results and the data,
 	on country level.

@@ -12,7 +12,6 @@ from scipy.sparse import csr_matrix
 import sys
 import os
 from SEIR_full.indices import *
-from SEIR_full.utils import *
 
 #############################################
 # Generating parameters files based on tazs #
@@ -65,6 +64,8 @@ def wheighted_average(df):
 	tot = df['tot_pop'].sum()
 	return (df['cases_prop'].sum() / tot)
 
+### define indices
+ind = Indices('250')
 
 ### Creating demograph/age_dist
 pop_dist = pd.read_excel('../Data/raw/pop2taz.xlsx', header=2)
@@ -100,6 +101,10 @@ pop_cell = pop_cell / pop_cell.sum().sum()
 pop_cell.reset_index(inplace=True)
 pop_cell.columns = ['cell_id'] + list(A.values())
 pop_cell.to_csv('../Data/demograph/age_dist_area.csv')
+
+## empty cells file to save
+empty_cells = pop_cell[pop_cell.sum(axis=1) == 0]['cell_id']
+empty_cells.to_csv('../Data/demograph/empty_cells.csv')
 
 ### creating demograph/religion
 religion2taz = pd.read_csv('../Data/raw/religion2taz.csv')
@@ -193,6 +198,10 @@ tmp.loc[tmp == 0] = 1
 religion2taz = religion2taz.divide(tmp, axis=0)
 religion2taz.reset_index(inplace=True)
 religion2taz.columns = ['cell_id', 'Orthodox', 'Druze', 'Other', 'Sacular', 'Muslim', 'Christian', 'Jewish']
+religion2taz['cell_id'] = religion2taz['cell_id'].astype(str)
+empty_cells = pd.read_csv('../Data/demograph/empty_cells.csv')['cell_id'].astype(str)
+religion2taz = religion2taz[
+            religion2taz['cell_id'].apply(lambda x: x not in empty_cells.values)]
 religion2taz.to_csv('../Data/demograph/religion_dis.csv')
 
 ## Creating stay_home/ALL
@@ -206,6 +215,11 @@ home['out_pct'] = home['out'] / home['total']
 
 taz2cell = pd.read_excel('../Data/division_choice/'+ cell_name + '/taz2cell.xlsx')
 home = home.merge(taz2cell, on='taz_id')
+home['cell_id'] = home['cell_id'].astype(str)
+empty_cells = pd.read_csv('../Data/demograph/empty_cells.csv')['cell_id'].astype(str)
+home = home[
+            home['cell_id'].apply(lambda x: x not in empty_cells.values)]
+
 home_cell = home.groupby(['date', 'cell_id'])[['stay', 'out', 'total']].sum().reset_index()
 home_cell['out_pct'] = home_cell['out'] / home_cell['total']
 pivoted = pd.pivot_table(home_cell, index='date', columns='cell_id', values='out_pct')
@@ -258,6 +272,10 @@ pop_dist = pop_dist[['id', 'tot_pop']]
 
 taz2sick = taz2sick.merge(taz2cell, on='taz_id')
 taz2sick = taz2sick.merge(pop_dist, left_on='taz_id', right_on='id')
+taz2sick['cell_id'] = taz2sick['cell_id'].astype(str)
+empty_cells = pd.read_csv('../Data/demograph/empty_cells.csv')['cell_id'].astype(str)
+taz2sick = taz2sick[
+            taz2sick['cell_id'].apply(lambda x: x not in empty_cells.values)]
 taz2sick['cases_prop'] = taz2sick['cases_prop'] * taz2sick['tot_pop']
 
 taz2sick = taz2sick.groupby(by='cell_id')[['cases_prop', 'tot_pop']].apply(wheighted_average)

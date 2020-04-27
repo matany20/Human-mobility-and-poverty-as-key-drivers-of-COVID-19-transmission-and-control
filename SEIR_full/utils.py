@@ -1,13 +1,48 @@
 import numpy as np
 from scipy.sparse import csr_matrix
-from .indices import *
 from scipy.stats import poisson
 from scipy.stats import binom
+import pandas as pd
 
 
-def divide_population(prop_dict,
-					  vector_to_switch,
-					  ):
+def get_opposite_dict(dic, keys):
+	"""The function gets a dict and new keys list and returns a dictionary in which keys as keys,
+	and values are the keys from dic """
+	res_dict = {}
+
+	for new_key in keys:
+		new_val_lst = []
+		for old_k, old_v in dic.items():
+			if all(i in old_v for i in new_key):
+				new_val_lst.append(old_k)
+		if len(new_key) == 1:
+			res_dict[new_key[0]] = new_val_lst
+		else:
+			res_dict[new_key] = new_val_lst
+	return res_dict
+
+
+def expand_partial_array(mapping_dic, array_to_expand, size):
+	"""The function gets mapping_dic - indeces to assign in the expanded array (with key granularity based on
+	array_to_expand), and array_to_expand - the expanded array's values will be based on this array. Returns
+	and expanded array shape (len(N),1) based on the array_to_expand"""
+
+	# Creating dictionary that maps the indices in the array to expand
+	#     small_mapping_dic = {k:v[0] for k,v in mapping_dic.items()}
+
+	# Assigning values to the full array
+	full_array = np.zeros(size)
+	for i, k in enumerate(mapping_dic.keys()):
+		full_array[mapping_dic[k]] = array_to_expand[i]
+
+	return full_array
+
+
+def divide_population(
+		ind,
+		prop_dict,
+		vector_to_switch,
+	):
 	"""
 	The function move population from non-Intervention group to Intervention group
 	:param prop_dict: key = (region,risk,age), value=prop to shift
@@ -18,8 +53,8 @@ def divide_population(prop_dict,
 	new_distribution = vector_to_switch.copy()
 	for region, risk, age in prop_dict.keys():
 		# indices of intervention group and non-intervention group
-		inter_idx = inter_region_risk_age_dict['Intervention',region,risk,age]
-		non_inter_idx = inter_region_risk_age_dict['Non-intervention', region, risk, age]
+		inter_idx = ind.inter_region_risk_age_dict['Intervention',region,risk,age]
+		non_inter_idx = ind.inter_region_risk_age_dict['Non-intervention', region, risk, age]
 
 		new_distribution[inter_idx] = vector_to_switch[non_inter_idx] * prop_dict[region,risk,age]
 		new_distribution[non_inter_idx] = vector_to_switch[non_inter_idx] * (1 - prop_dict[region, risk, age])
@@ -175,6 +210,7 @@ def shrink_array_sum(
 
 
 def create_C_mtx_leisure_work(
+		ind,
 		od_mat,
 		base_mat,
 		age_dist_area,
@@ -192,7 +228,7 @@ def create_C_mtx_leisure_work(
 	:return:
 	"""
 	full_C = pd.DataFrame(
-		index=pd.MultiIndex.from_tuples(list(MI.values()),
+		index=pd.MultiIndex.from_tuples(list(ind.MI.values()),
 										names=['age', 'area', 'age']),
 		columns=od_mat.index
 	)
@@ -206,7 +242,8 @@ def create_C_mtx_leisure_work(
 			except:
 				factor = 1
 		tmp1 = age_dist_area[index[2]]
-		tmp1.index = list(G.values())
+		tmp1.loc[tmp1 == 0] = 1
+		tmp1.index = list(ind.G.values())
 		if (index[0] in ['0-4', '5-9']) and (eye_mat is not None):
 			tmp2 = eye_mat.loc[index[1]] * \
 				   base_mat.loc[index[0]][index[2]] * factor
@@ -228,6 +265,7 @@ def Beta2beta_j(Beta):
 
 
 def calculate_force_matriceis(
+		ind,
 		C,
 		Ie,
 		Is,
@@ -270,41 +308,46 @@ def calculate_force_matriceis(
 
 
 	force_home = (behave_componnet_inter_no_work *\
-				  C['home_inter'][t].T.dot((Ie[inter_risk_dict['Intervention', 'Low']] + Ie[inter_risk_dict['Intervention', 'High']]) * alpha +
-											Is[inter_risk_dict['Intervention', 'Low']] + Is[inter_risk_dict['Intervention', 'High']] +
-											Ia[inter_risk_dict['Intervention', 'Low']] + Ia[inter_risk_dict['Intervention', 'High']]) +
+				  C['home_inter'][t].T.dot((Ie[ind.inter_risk_dict['Intervention', 'Low']] + Ie[ind.inter_risk_dict['Intervention', 'High']]) * alpha +
+											Is[ind.inter_risk_dict['Intervention', 'Low']] + Is[ind.inter_risk_dict['Intervention', 'High']] +
+											Ia[ind.inter_risk_dict['Intervention', 'Low']] + Ia[ind.inter_risk_dict['Intervention', 'High']]) +
 
 				   behave_componnet_non_no_work *\
-				  C['home_non'][t].T.dot((Ie[inter_risk_dict['Non-intervention', 'Low']] + Ie[inter_risk_dict['Non-intervention', 'High']]) * alpha +
-										 Is[inter_risk_dict['Non-intervention', 'Low']] +Is[inter_risk_dict[ 'Non-intervention', 'High']] +
-										 Ia[inter_risk_dict['Non-intervention', 'Low']] + Ia[inter_risk_dict['Non-intervention', 'High']]))
+				  C['home_non'][t].T.dot((Ie[ind.inter_risk_dict['Non-intervention', 'Low']] + Ie[ind.inter_risk_dict['Non-intervention', 'High']]) * alpha +
+										 Is[ind.inter_risk_dict['Non-intervention', 'Low']] +Is[ind.inter_risk_dict[ 'Non-intervention', 'High']] +
+										 Ia[ind.inter_risk_dict['Non-intervention', 'Low']] + Ia[ind.inter_risk_dict['Non-intervention', 'High']]))
 
 	force_out = (behave_componnet_inter_work * \
-				  C['work_inter'][t].T.dot((Ie[inter_risk_dict['Intervention', 'Low']] + Ie[inter_risk_dict['Intervention', 'High']]) * alpha +
-										   Is[inter_risk_dict['Intervention', 'Low']] + Is[inter_risk_dict['Intervention', 'High']] +
-										   Ia[inter_risk_dict['Intervention', 'Low']] + Ia[inter_risk_dict['Intervention', 'High']]) +
+				  C['work_inter'][t].T.dot((Ie[ind.inter_risk_dict['Intervention', 'Low']] + Ie[ind.inter_risk_dict['Intervention', 'High']]) * alpha +
+										   Is[ind.inter_risk_dict['Intervention', 'Low']] + Is[ind.inter_risk_dict['Intervention', 'High']] +
+										   Ia[ind.inter_risk_dict['Intervention', 'Low']] + Ia[ind.inter_risk_dict['Intervention', 'High']]) +
 
 				  behave_componnet_non_work *\
-				  C['work_non'][t].T.dot((Ie[inter_risk_dict['Non-intervention', 'Low']] + Ie[inter_risk_dict['Non-intervention', 'High']]) * alpha +
-										 Is[inter_risk_dict['Non-intervention', 'Low']] + Is[inter_risk_dict['Non-intervention', 'High']] +
-										 Ia[inter_risk_dict['Non-intervention', 'Low']] + Ia[inter_risk_dict['Non-intervention', 'High']]) +
+				  C['work_non'][t].T.dot((Ie[ind.inter_risk_dict['Non-intervention', 'Low']] + Ie[ind.inter_risk_dict['Non-intervention', 'High']]) * alpha +
+										 Is[ind.inter_risk_dict['Non-intervention', 'Low']] + Is[ind.inter_risk_dict['Non-intervention', 'High']] +
+										 Ia[ind.inter_risk_dict['Non-intervention', 'Low']] + Ia[ind.inter_risk_dict['Non-intervention', 'High']]) +
 
 				 behave_componnet_inter_no_work *\
-				 C['leisure_inter'][t].T.dot((Ie[inter_risk_dict['Intervention', 'Low']] + Ie[inter_risk_dict['Intervention', 'High']]) * alpha +
-											  Is[inter_risk_dict['Intervention', 'Low']] + Is[inter_risk_dict['Intervention', 'High']] +
-											  Ia[inter_risk_dict['Intervention', 'Low']] + Ia[inter_risk_dict['Intervention', 'High']]) +
+				 C['leisure_inter'][t].T.dot((Ie[ind.inter_risk_dict['Intervention', 'Low']] + Ie[ind.inter_risk_dict['Intervention', 'High']]) * alpha +
+											  Is[ind.inter_risk_dict['Intervention', 'Low']] + Is[ind.inter_risk_dict['Intervention', 'High']] +
+											  Ia[ind.inter_risk_dict['Intervention', 'Low']] + Ia[ind.inter_risk_dict['Intervention', 'High']]) +
 
 				 behave_componnet_non_no_work*\
-				 C['leisure_non'][t].T.dot((Ie[inter_risk_dict['Non-intervention', 'Low']] + Ie[inter_risk_dict['Non-intervention', 'High']]) * alpha +
-											Is[inter_risk_dict['Non-intervention', 'Low']] + Is[inter_risk_dict['Non-intervention', 'High']] +
-											Ia[inter_risk_dict['Non-intervention', 'Low']] + Ia[inter_risk_dict['Non-intervention', 'High']]))
+				 C['leisure_non'][t].T.dot((Ie[ind.inter_risk_dict['Non-intervention', 'Low']] + Ie[ind.inter_risk_dict['Non-intervention', 'High']]) * alpha +
+											Is[ind.inter_risk_dict['Non-intervention', 'Low']] + Is[ind.inter_risk_dict['Non-intervention', 'High']] +
+											Ia[ind.inter_risk_dict['Non-intervention', 'Low']] + Ia[ind.inter_risk_dict['Non-intervention', 'High']]))
 	return {
 		'out': force_out,
 		'home': force_home
 	}
 
 
-def isolate_areas(base_mtx, isolation_mtx, area_lst):
+def isolate_areas(
+		ind,
+		base_mtx,
+		isolation_mtx,
+		area_lst,
+	):
 	"""
 	The function gets base_mtx and switches its rows and columns representing the areas in area_lst with thw
 	matching rows and columns from isolation_mtx.
@@ -317,9 +360,9 @@ def isolate_areas(base_mtx, isolation_mtx, area_lst):
 
 	for area in area_lst:
 		# switch rows:
-		base_mtx[region_ga_dict[area], :] = isolation_mtx[region_ga_dict[area], :]
+		base_mtx[ind.region_ga_dict[area], :] = isolation_mtx[ind.region_ga_dict[area], :]
 		# switch columns:
-		base_mtx[:, region_ga_dict[area]] = isolation_mtx[:, region_ga_dict[area]]
+		base_mtx[:, ind.region_ga_dict[area]] = isolation_mtx[:, ind.region_ga_dict[area]]
 	return base_mtx
 
 

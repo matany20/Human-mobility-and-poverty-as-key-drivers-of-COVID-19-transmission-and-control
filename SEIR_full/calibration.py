@@ -7,7 +7,7 @@ import itertools
 import pickle
 
 
-def errorfunc(tpl, data, f, season_length, eps, alpha):
+def errorfunc(tpl, data, f, season_length, eps, alpha, ind):
 	"""
 
 	:param tpl:
@@ -44,12 +44,12 @@ def errorfunc(tpl, data, f, season_length, eps, alpha):
 	)
 
 	new_cases_model = model_result['new_Is']
-	model_results_cal = np.zeros((season_length + 1, len(A)))
+	model_results_cal = np.zeros((season_length + 1, len(ind.A)))
 	# Calculated total symptomatic (high+low) per age group (adding as columns)
-	for i, age_group in enumerate(age_dict.keys()):
+	for i, age_group in enumerate(ind.age_dict.keys()):
 		model_results_cal[:, i] = new_cases_model[
 								  	:,
-								  	age_dict[age_group]
+								  ind.age_dict[age_group]
 								  ].sum(axis=1)
 
 	return np.log(MSE(data, model_results_cal))
