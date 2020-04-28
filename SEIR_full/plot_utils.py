@@ -387,12 +387,15 @@ def make_respiratory_warning(
 	plt.rcParams.update({'font.size': 20})
 
 
-def plot_respiration_cases(res_mdl):
+def plot_respiration_cases(res_mdl, days = None):
 	fig, ax = plt.subplots(figsize=(15, 10))
-	ax.plot(((res_mdl['Vents']).sum(axis=1))*pop_israel+60)
+	ax.plot(((res_mdl['Vents']).sum(axis=1))*pop_israel)
 	ax.set_ylabel('Resipratory cases [#]', fontsize=35)
 	ax.set_title('Respiratory Cases Global', fontsize=50)
 	ax.set_xlabel('Time [d]', fontsize=35)
+	if days is not None:
+		ax.axvline(x=days, c='k', linewidth=2,
+				   linestyle='--')
 	plt.show()
 
 
