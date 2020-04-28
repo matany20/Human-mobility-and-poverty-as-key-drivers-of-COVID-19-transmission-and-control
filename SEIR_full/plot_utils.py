@@ -195,7 +195,7 @@ def plot_calibrated_model(
 									:len(date_list),
 								   ind.age_dict[age_group],
 								   ].sum(axis=1)
-		plot_dict[A[i] + '_dt'] = data[:, i]
+		plot_dict[ind.A[i] + '_dt'] = data[:, i]
 
 	plot_df = pd.DataFrame.from_dict(plot_dict)
 
