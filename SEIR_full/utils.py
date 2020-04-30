@@ -3,6 +3,8 @@ from scipy.sparse import csr_matrix
 from scipy.stats import poisson
 from scipy.stats import binom
 import pandas as pd
+import pickle
+import copy
 
 
 def get_opposite_dict(dic, keys):
@@ -364,6 +366,85 @@ def isolate_areas(
 		# switch columns:
 		base_mtx[:, ind.region_ga_dict[area]] = isolation_mtx[:, ind.region_ga_dict[area]]
 	return base_mtx
+
+
+def automatic_global_inter(model, is_pop, inter_name, closed_inter, thresh=4960, thresh_var='Vents', sim_length=300):
+	# First intervention
+	with open('../Data/interventions/C_inter_' + inter_name + '.pickle',
+			  'rb') as pickle_in:
+		C_inter = pickle.load(pickle_in)
+
+	with open(
+			'../Data/interventions/stay_home_idx_inter_' + inter_name + '.pickle',
+			'rb') as pickle_in:
+		stay_home_idx_inter = pickle.load(pickle_in)
+
+	with open(
+			'../Data/interventions/routine_t_inter_' + inter_name + '.pickle',
+			'rb') as pickle_in:
+		routine_t_inter = pickle.load(pickle_in)
+
+	with open(
+			'../Data/interventions/transfer_pop_inter_' + inter_name + '.pickle',
+			'rb') as pickle_in:
+		transfer_pop_inter = pickle.load(pickle_in)
+
+	#Seconed intervention
+	with open('../Data/interventions/C_inter_' + closed_inter + '.pickle', 'rb') as pickle_in:
+		C_close = pickle.load(pickle_in)
+
+	with open('../Data/interventions/stay_home_idx_inter_' + closed_inter + '.pickle', 'rb') as pickle_in:
+		stay_home_idx_close = pickle.load(pickle_in)
+
+	with open('../Data/interventions/routine_t_inter_' + closed_inter + '.pickle', 'rb') as pickle_in:
+		routine_t_close = pickle.load(pickle_in)
+
+	with open('../Data/interventions/transfer_pop_inter_' + closed_inter + '.pickle', 'rb') as pickle_in:
+		transfer_pop_close = pickle.load(pickle_in)
+
+	# run normal intervention of letting everybody out
+	model_inter = copy.deepcopy(model)
+	res_mdl = model_inter.intervention(
+		C=C_inter,
+		days_in_season=sim_length,
+		#             days_in_season=(dates[-1]-start_inter).days,
+		#             days_in_season=inter2_timing - (start_inter-beginning).days,
+		stay_home_idx=stay_home_idx_inter,
+		not_routine=routine_t_inter,
+		prop_dict=transfer_pop_inter,
+	)
+
+	days_to_closing = (res_mdl[thresh_var].sum(
+		axis=1) * is_pop < thresh).sum() - 14
+	days_to_closing -= len(model.S)
+
+	# run normal intervention of letting everybody out until sec inter.
+	model_inter = copy.deepcopy(model)
+	model_inter.intervention(
+		C=C_inter,
+		days_in_season=days_to_closing,
+		#             days_in_season=(dates[-1]-start_inter).days,
+		#             days_in_season=inter2_timing - (start_inter-beginning).days,
+		stay_home_idx=stay_home_idx_inter,
+		not_routine=routine_t_inter,
+		prop_dict=transfer_pop_inter,
+	)
+	res_mdl_close = model_inter.intervention(
+		C=C_close,
+		days_in_season=sim_length-days_to_closing,
+		stay_home_idx=stay_home_idx_close,
+		not_routine=routine_t_close,
+		prop_dict=None,
+	)
+
+	for i, vent in enumerate(res_mdl['Vents']):
+		res_mdl['Vents'][i] = vent + (
+					(60.0 / is_pop) * vent) / vent.sum()
+	for i, vent in enumerate(res_mdl_close['Vents']):
+		res_mdl_close['Vents'][i] = vent + (
+					(60.0 / is_pop) * vent) / vent.sum()
+
+	return (res_mdl, res_mdl_close)
 
 
 def print_stat_fit_behave(fit_results_object):

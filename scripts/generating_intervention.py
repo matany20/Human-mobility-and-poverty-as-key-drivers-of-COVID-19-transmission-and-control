@@ -147,7 +147,10 @@ elif market_pct > 30:
 									(np.ones_like(
 										stay_home_idx_work) - stay_home_idx_work.copy()) \
 									* factor / 7.0
-	stay_home_idx_not_work_inter_spec = np.ones_like(stay_home_idx_work)
+	stay_home_idx_not_work_inter_spec = stay_home_idx_work.copy() + \
+									(np.ones_like(
+										stay_home_idx_work) - stay_home_idx_work.copy()) \
+									* factor / 7.0
 
 else:
 	print('market_pct value is not define!')

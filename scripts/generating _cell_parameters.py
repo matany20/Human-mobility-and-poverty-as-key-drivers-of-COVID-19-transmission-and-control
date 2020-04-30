@@ -420,9 +420,15 @@ def create_stay_idx_routine(ind):
 		stay_idx_t.append(stay_home_idx_no_100_meters)
 		routine_vector.append(1)
 
-	# Bnei Brak quaranrine from April 3rd
-	for i in range(d_tot - (d_routin + d_school + d_work + d_100)):
+	# Bnei Brak quaranrine from April 3rd - April 18th
+	d_bb = 16
+	for i in range(d_bb):
 		stay_idx_t.append(stay_home_idx_no_bb)
+		routine_vector.append(1)
+
+	# Back to 30% market like no school and no work - April 19th forward
+	for i in range(d_tot - (d_routin + d_school + d_work + d_100 + d_bb)):
+		stay_idx_t.append(stay_home_idx_work)
 		routine_vector.append(1)
 
 	stay_idx_calibration = {
@@ -904,7 +910,7 @@ def create_parameters_C_calibration(ind):
 		work_inter.append(full_mtx_work['no_bb'])
 		leis_inter.append(full_mtx_leisure['no_bb'])
 
-	# Back to 30% market like no school and no work - April 18th forward
+	# Back to 30% market like no school and no work - April 19th forward
 	for i in range(
 			d_tot - d_no_school - d_rout - d_no_work - d_no_100_meters - d_bb):
 		home_inter.append(full_mtx_home)
