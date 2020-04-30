@@ -29,7 +29,7 @@ from SEIR_full.indices import *
 
 ### Setting parameters:
 # market_pct of 10 means lockdown
-market_pct = 75
+market_pct = 10
 no_risk = False
 no_school = True
 no_kid10 = False
@@ -39,16 +39,17 @@ with (open('../Data/parameters/indices.pickle', 'rb')) as openfile:
 	ind = pickle.load(openfile)
 
 inter_name = ind.cell_name + '@' + str(market_pct)
-if no_risk:
-	inter_name += '_no_risk60'
-if no_school:
-	inter_name += '_no_school'
-else:
-	inter_name += '_school'
-if not no_kid10:
-	inter_name += '_kid010'
-else:
-	inter_name += '_no_kid010'
+if  market_pct != 10:
+	if no_risk:
+		inter_name += '_no_risk60'
+	if no_school:
+		inter_name += '_no_school'
+	else:
+		inter_name += '_school'
+	if not no_kid10:
+		inter_name += '_kid010'
+	else:
+		inter_name += '_no_kid010'
 
 ### importing files for manipulation:
 # full_mtx ordering
@@ -124,16 +125,16 @@ if market_pct == 10:
 	work = full_mtx_work['no_100_meters']
 	leisure = full_mtx_leisure['no_100_meters']
 
-	stay_home_idx_work_inter_spec = stay_home_idx_no_100_meters.__deepcopy__()
+	stay_home_idx_work_inter_spec = stay_home_idx_no_100_meters.copy()
 	stay_home_idx_not_work_inter_spec = \
-		stay_home_idx_no_100_meters.__deepcopy__()
+		stay_home_idx_no_100_meters.copy()
 
 elif market_pct == 30:
 	work = full_mtx_work['no_work']
 	leisure = full_mtx_leisure['no_work']
 
-	stay_home_idx_work_inter_spec = stay_home_idx_work.__deepcopy__()
-	stay_home_idx_not_work_inter_spec = stay_home_idx_work.__deepcopy__()
+	stay_home_idx_work_inter_spec = stay_home_idx_work.copy()
+	stay_home_idx_not_work_inter_spec = stay_home_idx_work.copy()
 
 elif market_pct > 30:
 	factor = (market_pct-30.0)/10.0
@@ -142,53 +143,51 @@ elif market_pct > 30:
 	leisure = full_mtx_leisure['no_work'] + \
 			  (full_mtx_leisure['routine'] - full_mtx_leisure['no_work']) * factor/7.0
 
-	stay_home_idx_work_inter_spec = stay_home_idx_work.__deepcopy__() + \
+	stay_home_idx_work_inter_spec = stay_home_idx_work.copy() + \
 									(np.ones_like(
-										stay_home_idx_work) - stay_home_idx_work.__deepcopy__()) \
+										stay_home_idx_work) - stay_home_idx_work.copy()) \
 									* factor / 7.0
-	stay_home_idx_not_work_inter_spec = stay_home_idx_work.__deepcopy__() + \
-										(np.ones_like(
-											stay_home_idx_work) - stay_home_idx_work.__deepcopy__()) \
-										* factor / 7.0
+	stay_home_idx_not_work_inter_spec = np.ones_like(stay_home_idx_work)
 
 else:
 	print('market_pct value is not define!')
 	sys.exit()
 
 # make inter for base
-for group, idx in ind.age_ga_dict.items():
-	if group in ['0-4', '5-9']:
-		if no_kid10:
-			work[idx, :] = full_mtx_work['no_100_meters'][idx, :]
-			work[:, idx] = full_mtx_work['no_100_meters'][:, idx]
+if market_pct != 10:
+	for group, idx in ind.age_ga_dict.items():
+		if group in ['0-4', '5-9']:
+			if no_kid10:
+				work[idx, :] = full_mtx_work['no_100_meters'][idx, :]
+				work[:, idx] = full_mtx_work['no_100_meters'][:, idx]
 
-			stay_home_idx_work_inter_spec[idx] = \
-				stay_home_idx_no_100_meters[idx]
-		else:
-			work[idx, :] = full_mtx_work['routine'][idx, :]
-			work[:, idx] = full_mtx_work['routine'][:, idx]
+				stay_home_idx_work_inter_spec[idx] = \
+					stay_home_idx_no_100_meters[idx]
+			else:
+				work[idx, :] = full_mtx_work['routine'][idx, :]
+				work[:, idx] = full_mtx_work['routine'][:, idx]
 
-			stay_home_idx_work_inter_spec[idx] = 1
-	if group in ['10-19']:
-		if no_school:
-			work[idx, :] = full_mtx_work['no_100_meters'][idx, :]
-			work[:, idx] = full_mtx_work['no_100_meters'][:, idx]
+				stay_home_idx_work_inter_spec[idx] = 1
+		if group in ['10-19']:
+			if no_school:
+				work[idx, :] = full_mtx_work['no_100_meters'][idx, :]
+				work[:, idx] = full_mtx_work['no_100_meters'][:, idx]
 
-			stay_home_idx_work_inter_spec[idx] = \
-				stay_home_idx_no_100_meters[idx]
-		else:
-			work[idx, :] = full_mtx_work['routine'][idx, :]
-			work[:, idx] = full_mtx_work['routine'][:, idx]
+				stay_home_idx_work_inter_spec[idx] = \
+					stay_home_idx_no_100_meters[idx]
+			else:
+				work[idx, :] = full_mtx_work['routine'][idx, :]
+				work[:, idx] = full_mtx_work['routine'][:, idx]
 
-			stay_home_idx_work_inter_spec[idx] = 1
+				stay_home_idx_work_inter_spec[idx] = 1
 
-	if group in ['70+', '60-69']:
-		if no_risk:
-			work[idx, :] = full_mtx_work['no_100_meters'][idx, :]
-			work[:, idx] = full_mtx_work['no_100_meters'][:, idx]
+		if group in ['70+', '60-69']:
+			if no_risk:
+				work[idx, :] = full_mtx_work['no_100_meters'][idx, :]
+				work[:, idx] = full_mtx_work['no_100_meters'][:, idx]
 
-			leisure[idx, :] = full_mtx_leisure['no_100_meters'][idx, :]
-			leisure[:, idx] = full_mtx_leisure['no_100_meters'][:, idx]
+				leisure[idx, :] = full_mtx_leisure['no_100_meters'][idx, :]
+				leisure[:, idx] = full_mtx_leisure['no_100_meters'][:, idx]
 
 for i in range(d_tot):
 	home_inter.append(full_mtx_home)

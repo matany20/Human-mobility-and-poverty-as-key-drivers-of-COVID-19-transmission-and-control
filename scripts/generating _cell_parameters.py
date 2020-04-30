@@ -17,16 +17,16 @@ from SEIR_full.indices import *
 # Generating parameters files based on tazs #
 #############################################
 
+cell_name = '20'
+
 # add functions
-
-
 def make_pop(df):
-	df = df.iloc[:,0:-2]
+	df = df.iloc[:, 0:-2]
 	return df.sum(axis=0)
 
 
 def make_pop_religion(df):
-	df = df.iloc[:,1:8].multiply(df['tot_pop'], axis='index')
+	df = df.iloc[:, 1:8].multiply(df['tot_pop'], axis='index')
 	return df.sum(axis=0)
 
 
@@ -104,6 +104,10 @@ def create_demograph_age_dist_empty_cells(ind):
 	pop_cell.columns = ['cell_id'] + list(ind.A.values())
 
 	## empty cells file to save
+	try:
+		os.mkdir('../Data/demograph')
+	except:
+		pass
 	empty_cells = pop_cell[pop_cell.sum(axis=1) == 0]['cell_id']
 	empty_cells.to_csv('../Data/demograph/empty_cells.csv')
 
@@ -112,6 +116,18 @@ def create_demograph_age_dist_empty_cells(ind):
 	pop_cell = pop_cell[
 		pop_cell['cell_id'].apply(lambda x: x not in empty_cells.values)]
 	pop_cell.to_csv('../Data/demograph/age_dist_area.csv')
+
+
+def create_paramaters_ind(ind):
+	ind.update_empty()
+	## empty cells file to save
+	try:
+		os.mkdir('../Data/parameters')
+	except:
+		pass
+	with open('../Data/parameters/indices.pickle', 'wb') as handle:
+		pickle.dump(ind, handle, protocol=pickle.HIGHEST_PROTOCOL)
+	return ind
 
 
 def create_demograph_religion(ind):
@@ -923,13 +939,15 @@ def create_parameters_is_haredim(ind):
 
 
 ### define indices
-ind = Indices('20')
+ind = Indices(cell_name)
 
 age_dist = {'0-4': 0.02, '5-9': 0.02, '10-19': 0.11, '20-29': 0.23,
 				'30-39': 0.15, '40-49': 0.14, '50-59': 0.14, '60-69': 0.11,
 				'70+': 0.08}
 
 create_demograph_age_dist_empty_cells(ind)
+
+ind = create_paramaters_ind(ind)
 
 create_demograph_religion(ind)
 
