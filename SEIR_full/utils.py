@@ -444,7 +444,7 @@ def automatic_global_inter(model, is_pop, inter_name, closed_inter, thresh=4960,
 		res_mdl_close['Vents'][i] = vent + (
 					(60.0 / is_pop) * vent) / vent.sum()
 
-	return (res_mdl, res_mdl_close)
+	return (res_mdl, res_mdl_close, days_to_closing)
 
 
 def print_stat_fit_behave(fit_results_object):
