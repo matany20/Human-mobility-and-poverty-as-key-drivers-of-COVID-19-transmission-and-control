@@ -132,7 +132,6 @@ dmypy.json
 # specific Data folders
 Data/Parameters/
 Data/Parameters_matan/
-Data/GIS/
 Data/demograph_matan/
 Data/demograph/
 Data/base_contact_mtx_matan/

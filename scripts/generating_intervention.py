@@ -29,7 +29,7 @@ from SEIR_full.indices import *
 
 ### Setting parameters:
 # market_pct of 10 means lockdown
-market_pct = 10
+market_pct = 100
 no_risk = False
 no_school = True
 no_kid10 = False
