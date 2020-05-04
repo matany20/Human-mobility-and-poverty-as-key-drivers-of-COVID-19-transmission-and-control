@@ -16,7 +16,7 @@ from geopandas import GeoSeries
 # This file generates the geography of cells based on tazs geography.
 
 ## Consts
-cell_name = '250'
+cell_name = '20'
 
 ## actual script:
 TAZs = gpd.read_file('../Data/GIS/2630_TAZ_POLY_only/2630_TAZ_POLY_only.shp')
@@ -33,3 +33,7 @@ cell_geo = gpd.GeoDataFrame(cell_geo)
 cell_names = pd.read_excel('../Data/division_choice/' + cell_name +'/cell2name.xlsx')
 cell_names[['cell_id', 'cell_name']]
 cell_geo = cell_geo.merge(cell_names, on='cell_id')[['cell_id', 'cell_name', 'geometry']]
+
+import os
+os.mkdir('../Data/GIS/'+ cell_name + '_poly')
+cell_geo.to_file('../Data/GIS/'+ cell_name + '_poly/' +cell_name + '_poly.shp')
