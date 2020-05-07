@@ -17,7 +17,7 @@ from SEIR_full.indices import *
 # Generating parameters files based on tazs #
 #############################################
 
-cell_name = '20'
+cell_name = '250'
 
 # add functions
 def make_pop(df):

@@ -444,3 +444,15 @@ def plot_hospitalizations_calibration(res_mdl,data,date_lst, start_date, end_dat
 	ax.set_ylabel(y_label)
 
 	return fig, ax
+
+
+def make_casulties(res_model, time_ahead, pop_israel, mu):
+	return (res_model['Vents'].sum(axis=1))[:time_ahead].sum()*pop_israel*mu*0.5
+
+
+def make_recoveries(res_model, time_ahead):
+	return (res_model['R'].sum(axis=1))[time_ahead]*100
+
+
+def make_ill_end(res_model, time_ahead, pop_israel):
+	return ((res_model['Ie']+res_model['Is']+res_model['Ia']).sum(axis=1))[time_ahead]*pop_israel

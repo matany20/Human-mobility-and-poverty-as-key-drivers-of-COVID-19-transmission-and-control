@@ -367,8 +367,87 @@ def isolate_areas(
 		base_mtx[:, ind.region_ga_dict[area]] = isolation_mtx[:, ind.region_ga_dict[area]]
 	return base_mtx
 
+def multi_inter_by_name(
+		ind,
+		model,
+		is_pop,
+		inter_names,
+		inter_times = None,
+		sim_length=300,
+		fix_vents=True,
+		deg_param=None,
+		no_pop = False,
+	):
+	if len(inter_names) == 1:
+		inter_times = []
+		inter_times.append(sim_length)
+		sim_left = sim_length
+	else:
+		inter_times.append(sim_length - np.sum(inter_times))
 
-def automatic_global_inter(model, is_pop, inter_name, closed_inter, thresh=4960, thresh_var='Vents', sim_length=300):
+	model_inter = copy.deepcopy(model)
+	if deg_param is not None:
+		with open('../Data/interventions/C_inter_' + deg_param['inter_max'] + '.pickle',
+				  'rb') as pickle_in:
+			C_max = pickle.load(pickle_in)
+
+	for i, inter_name in enumerate(inter_names):
+		# First intervention
+		with open('../Data/interventions/C_inter_' + inter_name + '.pickle',
+				  'rb') as pickle_in:
+			C_inter = pickle.load(pickle_in)
+
+		with open(
+				'../Data/interventions/stay_home_idx_inter_' + inter_name + '.pickle',
+				'rb') as pickle_in:
+			stay_home_idx_inter = pickle.load(pickle_in)
+
+		with open(
+				'../Data/interventions/routine_t_inter_' + inter_name + '.pickle',
+				'rb') as pickle_in:
+			routine_t_inter = pickle.load(pickle_in)
+
+		if i != 0 or no_pop:
+			transfer_pop_inter = None
+		else:
+			with open(
+					'../Data/interventions/transfer_pop_inter_' + inter_name + '.pickle',
+					'rb') as pickle_in:
+				transfer_pop_inter = pickle.load(pickle_in)
+
+		sim_left = inter_times[i]
+		if deg_param is not None:
+			if i==0:
+				curr_time = 0
+			else:
+				curr_time = np.sum(inter_times[:i])
+			C_inter, stay_home_idx_inter = policy_degredation(
+				ind,
+				C_inter,
+				C_max,
+				stay_home_idx_inter,
+				deg_param['deg_rate'],
+				range(curr_time, curr_time + sim_left, 1),
+				deg_param['max_deg_rate'],
+				True,
+			)
+		res_mdl = model_inter.intervention(
+			C=C_inter,
+			days_in_season=sim_left,
+			stay_home_idx=stay_home_idx_inter,
+			not_routine=routine_t_inter,
+			prop_dict=transfer_pop_inter,
+		)
+
+	if fix_vents:
+		for i, vent in enumerate(res_mdl['Vents']):
+			res_mdl['Vents'][i] = vent + (
+					(60.0 / is_pop) * vent) / vent.sum()
+
+	return (res_mdl, model_inter)
+
+
+def automatic_global_stop_inter(model, is_pop, inter_name, closed_inter, thresh=4960, thresh_var='Vents', sim_length=300):
 	# First intervention
 	with open('../Data/interventions/C_inter_' + inter_name + '.pickle',
 			  'rb') as pickle_in:
@@ -475,4 +554,84 @@ def print_stat_fit_hosp(fit_results_object, tracking='hosp'):
 		print('Fitted parameters:\n Xi={0}\n Mu={1},\n '.format(fit_results_object.x[0],
 																				  fit_results_object.x[1]))
 	print('num of sampling the target function:', fit_results_object.nfev)
+
+
+def policy_degredation(
+	ind,
+	C,
+	C_max,
+	sh_idx,
+	deg_rate,
+	t,
+	max_deg_rate,
+	risk_deg,
+	):
+
+	new_c = {}
+	new_sh = {}
+	if risk_deg:
+		for key in C.keys():
+			new_c[key] = []
+			C_mat_step = (C_max[key][0] - C[key][0])
+			for curr_t in t:
+				C_mat = C[key][0].copy()
+				factor = np.minimum(
+					curr_t * deg_rate,
+					max_deg_rate) / 100.0
+				if key in ['home_non', 'work_non', 'leisure_non']:
+					C_mat += C_mat_step * factor
+				else:
+					for group, idx in ind.age_ga_dict.items():
+						if group in ['70+', '60-69']:
+							C_mat[idx, :] += C_mat_step[idx, :] * factor
+							C_mat[:, idx] += C_mat_step[:, idx] * factor
+				new_c[key].append(C_mat)
+		for key in sh_idx.keys():
+			new_sh[key] = {}
+			for key2 in sh_idx[key].keys():
+				new_sh[key][key2] = []
+				sh_idx_step = (np.ones_like(sh_idx[key][key2][0]) -
+							   sh_idx[key][key2][0])
+				for curr_t in t:
+					sh_idx_vec = sh_idx[key][key2][0].copy()
+					factor = np.minimum(
+						curr_t * deg_rate,
+						max_deg_rate) / 100.0
+					if key == 'non_inter':
+						sh_idx_vec += sh_idx_step * factor
+					else:
+						for group, idx in ind.age_ga_dict.items():
+							if group in ['70+', '60-69']:
+								sh_idx_vec[idx] += sh_idx_step[idx] * factor
+					new_sh[key][key2].append(sh_idx_vec)
+	return (new_c, new_sh)
+
+
+def inter2name(
+		ind,
+		pct,
+		slipped_pct=None,
+		no_risk=False,
+		no_school=False,
+		no_kid010=False,
+		risk_slipping=False,
+		world_slipping=False
+	):
+	inter_name = ind.cell_name + '@' + str(pct)
+	if pct != 10:
+		if no_risk:
+			inter_name += '_no_risk60'
+		if no_school:
+			inter_name += '_no_school'
+		else:
+			inter_name += '_school'
+		if not no_kid010:
+			inter_name += '_kid010'
+		else:
+			inter_name += '_no_kid010'
+		if risk_slipping:
+			inter_name += '_slipped_risk('+str(slipped_pct)+')'
+		if world_slipping:
+			inter_name += '_slipped_world('+str(slipped_pct)+')'
+	return inter_name
 

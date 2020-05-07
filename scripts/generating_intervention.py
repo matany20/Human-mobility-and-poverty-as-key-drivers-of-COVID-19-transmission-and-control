@@ -23,17 +23,17 @@ from SEIR_full.indices import *
 -first days of no school from March 14th - March 16th
 -without school and work from March 17th - March 25th
 -100 meters constrain from March 26th - April 2nd
--Bnei Brak quaranrine from April 3rd
+-Bnei Brak quaranrine from April 3rd - 
 """
 
 
 ### Setting parameters:
 # market_pct of 10 means lockdown
-market_pct = 75
-slipped_pct = 1
-no_risk = False
-no_school = True
-no_kid10 = True
+market_pct = 30
+slipped_pct = 10
+no_risk = True
+no_school = False
+no_kid10 = False
 risk_slipping = False
 world_slipping = False
 
@@ -126,7 +126,7 @@ sh_no_bb = expand_partial_array(
 ### setting C_inter:
 C_calibration = {}
 if ind.cell_name == '20':
-	d_tot = 1000
+	d_tot = 2000
 else:
 	d_tot = 500
 home_inter = []
@@ -216,61 +216,65 @@ if market_pct != 10:
 				sh_work_inter_spec[idx] = sh_no_100_meters[idx]
 				sh_not_work_inter_spec[idx] = sh_no_100_meters[idx]
 
-if (not risk_slipping) and (not world_slipping):
-	for i in range(d_tot):
-		home_inter.append(full_mtx_home)
-		work_inter.append(work)
-		leis_inter.append(leisure)
 
+sh_t_work_inter_step = sh_work_inter_spec \
+									 * slipped_pct/100.0
+sh_t_work_inter_max = np.minimum(
+	sh_work_inter_spec*1.5,
+	np.ones_like(sh_work_inter_spec),
+)
+sh_t_not_work_inter_step = sh_not_work_inter_spec \
+								 * slipped_pct/100.0
+sh_t_not_work_inter_max = np.minimum(
+	sh_not_work_inter_spec * 1.5,
+	np.ones_like(sh_not_work_inter_spec),
+)
+for i in range(d_tot):
+	home_inter.append(full_mtx_home)
+	work_inter.append(work)
+	leis_inter.append(leisure)
+
+	if not world_slipping:
 		sh_t_work_inter.append(sh_work_inter_spec)
 		sh_t_not_work_inter.append(sh_not_work_inter_spec)
-		routine_vector_inter.append(np.ones_like(sh_work))
-
-		sh_t_non_inter.append(sh_no_100_meters)
-		routine_vector_non_inter.append(np.ones_like(sh_work))
-
-elif world_slipping:
-	sh_t_work_inter_step = sh_work_inter_spec \
-									 * slipped_pct/100.0
-	sh_t_work_inter_max = np.minimum(
-		sh_work_inter_spec*1.5,
-		np.ones_like(sh_work_inter_spec),
-	)
-	sh_t_not_work_inter_step = sh_not_work_inter_spec \
-									 * slipped_pct/100.0
-	sh_t_not_work_inter_max = np.minimum(
-		sh_not_work_inter_spec * 1.5,
-		np.ones_like(sh_not_work_inter_spec),
-	)
-
-	for i in range(d_tot):
-		home_inter.append(full_mtx_home)
-		work_inter.append(work)
-		leis_inter.append(leisure)
-
+	else:
 		sh_work_inter_spec_t = \
 			np.minimum(
-				sh_work_inter_spec + sh_t_not_work_inter_step,
+				sh_work_inter_spec + i * sh_t_not_work_inter_step,
 				sh_t_work_inter_max)
 		sh_t_work_inter.append(sh_work_inter_spec_t)
 
 		sh_not_work_inter_spec_t = \
 			np.minimum(
-				sh_not_work_inter_spec + sh_t_work_inter_step,
+				sh_not_work_inter_spec + i * sh_t_work_inter_step,
 				sh_t_not_work_inter_max)
 		sh_t_not_work_inter.append(sh_not_work_inter_spec_t)
-
-		routine_vector_inter.append(np.ones_like(sh_work))
+	routine_vector_inter.append(np.ones_like(sh_work))
 
 
 work = full_mtx_work['no_100_meters']
 leisure = full_mtx_leisure['no_100_meters']
+
+sh_t_non_inter_spec = sh_no_100_meters.copy()
+sh_t_non_inter_step = sh_t_non_inter_spec \
+						   * slipped_pct / 100.0
+sh_t_non_inter_max = np.minimum(
+	sh_t_non_inter_spec * 1.5,
+	np.ones_like(sh_t_non_inter_spec),
+)
 for i in range(d_tot):
 	home_no_inter.append(full_mtx_home)
 	work_no_inter.append(work)
 	leis_no_inter.append(leisure)
 
-	sh_t_non_inter.append(sh_no_100_meters)
+	if risk_slipping:
+		sh_t_non_inter_spec_t = \
+			np.minimum(
+				sh_t_non_inter_spec + i*sh_t_non_inter_step,
+				sh_t_non_inter_max)
+		sh_t_non_inter.append(sh_t_non_inter_spec_t)
+	else:
+		sh_t_non_inter.append(sh_no_100_meters)
 	routine_vector_non_inter.append(np.ones_like(sh_work))
 
 C_calibration['home_inter'] = home_inter
@@ -325,3 +329,5 @@ with open('../Data/interventions/routine_t_inter_' + inter_name + '.pickle', 'wb
 	pickle.dump(routine_vector_calibration, handle, protocol=pickle.HIGHEST_PROTOCOL)
 with open('../Data/interventions/transfer_pop_inter_' + inter_name + '.pickle', 'wb') as handle:
 	pickle.dump(transfer_pop, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+print('Done making ', inter_name)
