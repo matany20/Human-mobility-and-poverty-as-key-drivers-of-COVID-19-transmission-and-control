@@ -17,7 +17,8 @@ from SEIR_full.indices import *
 # Generating parameters files based on tazs #
 #############################################
 
-cell_name = '20'
+cell_name = '250'
+isr_pop = 9136000
 
 # add functions
 def make_pop(df):
@@ -336,10 +337,10 @@ def create_demograph_sick_pop(ind):
 		'cell_id'].astype(str)
 	taz2sick = taz2sick[
 		taz2sick['cell_id'].apply(lambda x: x not in empty_cells.values)]
-	taz2sick['cases_prop'] = taz2sick['cases_prop'] * taz2sick['tot_pop']
+	# taz2sick['cases_prop'] = taz2sick['cases_prop'] * taz2sick['tot_pop']
 
-	taz2sick = taz2sick.groupby(by='cell_id')[['cases_prop', 'tot_pop']].apply(
-		wheighted_average)
+	taz2sick = taz2sick.groupby(by='cell_id')[['cases_prop']].apply(
+		sum)
 	taz2sick.name = 'cases_prop'
 	taz2sick.to_csv('../Data/demograph/sick_prop.csv')
 
@@ -752,6 +753,10 @@ def create_parameters_eps_dict(ind, age_dist):
 	with open('../Data/parameters/eps_dict.pickle', 'wb') as handle:
 		pickle.dump(eps_t, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
+	# # Save
+	# with open('../Data/parameters/init_I_IL.pickle', 'wb') as handle:
+	# 	pickle.dump(init_I_IL, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
 
 def create_parameters_eps_by_region_prop(ind, age_dist):
 	### eps by region proportion
@@ -766,7 +771,7 @@ def create_parameters_eps_by_region_prop(ind, age_dist):
 		scen = 'Scenario' + str(i)
 		f_init_i = f_init[scen][:(len(ind.R) * len(ind.A))]
 		init_I_IL[scen] = (491. / (1 - (
-				f_init_i * risk_dist['pop size'].values).sum())) / 9136000.
+				f_init_i * risk_dist['pop size'].values).sum())) / isr_pop
 		init_I_dis[scen] = init_I_dis_italy * init_I_IL[scen]
 
 

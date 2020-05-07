@@ -227,7 +227,9 @@ def plot_calibrated_model_region(
 		region_name,
 		start='2020-03-20',
 		end='2020-04-13',
-		loss_func='MSE'
+		loss_func='MSE',
+		mdl_mapper=None,
+		data_mapper=None
 		):
 	""" The function gets the results of the model and plot for each region
      the model results and the data normalized by region population. Data format is of region-age
@@ -238,8 +240,20 @@ def plot_calibrated_model_region(
 	:param end:
 	:param region_name:
 	:param loss_func:
+	:param mdl_mapper:
+	:param data_mapper:
 	:return:
 	"""
+	if mdl_mapper is not None:
+		region_dict = mdl_mapper
+	else:
+		region_dict = ind.region_dict
+
+	if data_mapper:
+		region_dict_data = data_mapper
+	else:
+		region_dict_data = ind.region_ga_dict
+
 	if loss_func == "MSE":
 		# fixing data to be proportion of israel citizens
 		data_specific = data[1] / 9136000
@@ -262,18 +276,18 @@ def plot_calibrated_model_region(
 	start_idx = int(np.where(date_list == start)[0])
 	end_idx = int(np.where(date_list == end)[0])
 	plot_dict = {}
-	for key in ind.region_dict.keys():
-		plot_dict[key + '_mdl'] = mdl_data[start_idx:end_idx+1, ind.region_dict[key]].sum(axis=1) / \
-								  population_size[ind.region_dict[key]].sum()
-		plot_dict[key + '_dt'] = data_specific[:, ind.region_ga_dict[key]].sum(axis=1) / \
-								 population_size[ind.region_dict[key]].sum()
+	for key in region_dict.keys():
+		plot_dict[key + '_mdl'] = mdl_data[start_idx:end_idx+1, region_dict[key]].sum(axis=1) / \
+								  population_size[region_dict[key]].sum()
+		plot_dict[key + '_dt'] = data_specific[:, region_dict_data[key]].sum(axis=1) / \
+								 population_size[region_dict[key]].sum()
 
 	plot_df = pd.DataFrame.from_dict(plot_dict)
 	plot_df.set_index(date_list[start_idx:end_idx+1],inplace=True)
 
-	fig, axes = plt.subplots(int(np.ceil(len(ind.region_dict)/3)), 3, figsize=(15,15))
+	fig, axes = plt.subplots(int(np.ceil(len(region_dict)/3)), 3, figsize=(15,15))
 
-	for ax, key in zip(axes.flat, ind.region_dict.keys()):
+	for ax, key in zip(axes.flat, region_dict.keys()):
 
 		plot_df.plot(y=[key + '_mdl', key + '_dt'],
 					 style=['-', '.'],
@@ -437,8 +451,7 @@ def plot_hospitalizations_calibration(res_mdl,data,date_lst, start_date, end_dat
 
 	# Plot
 	fig = plt.figure()
-	ax = plt.subplot()
-	plot_df.plot(style=['-', '.'], ax=ax)
+	ax = plot_df.plot(style=['-', '.'])
 	ax.set_title('Country level calibration plot')
 	ax.set_ylabel(y_label)
 
