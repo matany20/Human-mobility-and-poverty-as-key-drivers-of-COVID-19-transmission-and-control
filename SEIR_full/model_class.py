@@ -163,6 +163,7 @@ class Model_behave:
 			end='2020-04-13',
 			loss_func='MSE',
 			factor=1,
+			mapper=None,
 		):
 
 		self.reset()
@@ -184,6 +185,7 @@ class Model_behave:
 				end,
 				loss_func,
 				factor,
+				mapper,
 			),
 			options={'maxiter': maxiter},
 		)
@@ -401,6 +403,7 @@ class Model_behave:
 			end='2020-04-13',
 			loss_func='MSE',
 			factor=1,
+			mapper=None
 		):
 		"""
 		Calibrates the model to data
@@ -414,6 +417,7 @@ class Model_behave:
 		:param start:
 		:param end:
 		:param loss_func: loss function to minimize 'MSE' or 'BIN' or 'POIS'
+		:param mapper: different dict to match model's results
 		:returns: loss functions' value
 		"""
 		# update counter of runs since last fit action
@@ -439,12 +443,19 @@ class Model_behave:
 		# 	print('beta_j: ', beta_j)
 		# 	print('beta_behave: ', tpl[5])
 		# 	print('theta: ', tpl[4])
+		if mapper == None:
+			model_results_cal = np.zeros((days_in_season + 1, len(self.ind.region_age_dict)))
 
-		model_results_cal = np.zeros((days_in_season + 1, len(self.ind.region_age_dict)))
+			# Calculated total symptomatic (high+low) per age group (adding as columns)
+			for i, key in enumerate(self.ind.region_age_dict.keys()):
+				model_results_cal[:, i] = new_cases_model[:, self.ind.region_age_dict[key]].sum(axis=1)
 
-		# Calculated total symptomatic (high+low) per age group (adding as columns)
-		for i, key in enumerate(self.ind.region_age_dict.keys()):
-			model_results_cal[:, i] = new_cases_model[:, self.ind.region_age_dict[key]].sum(axis=1)
+		else:
+			model_results_cal = np.zeros((days_in_season + 1, len(mapper)))
+
+			# Calculated total symptomatic (high+low) per age group (adding as columns)
+			for i, key in enumerate(mapper.keys()):
+				model_results_cal[:, i] = new_cases_model[:, mapper[key]].sum(axis=1)
 
 		# Taking relevant time frame from model
 		start_idx = int(np.where(date_lst == start)[0])
