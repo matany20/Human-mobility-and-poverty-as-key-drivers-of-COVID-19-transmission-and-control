@@ -385,7 +385,7 @@ def make_respiratory_warning(
 	ax.set_xlabel('רתומ םימשנומ ףס', fontsize=35)
 	str1 = '\n' + ' תוינידמ יונישל םימשנומ רפסמ'
 	ax.set_ylabel(str1, fontsize=35)
-	ax.set_title('ןוחטב ףס', fontsize=50)
+	ax.set_title('ןוחטב יפס', fontsize=50)
 	# xticks = list(range(thresh, int(x.min()), -200)) + list(
 	# 	range(thresh, int(x.max()), 200))
 	xticks = the_values
@@ -396,6 +396,7 @@ def make_respiratory_warning(
 		ax.scatter(x=[thresh], y=[find_y(x, y, thresh)], c='r', s=400, zorder=4)
 
 	ax.plot(x, y, c='k', linewidth=10, zorder=3)
+	plt.setp(ax.get_xticklabels(), rotation=30, horizontalalignment='right')
 	plt_malben(ax, x, y, [2000, 2500, 2700, 2900, 3250, 3540, 3830, 4120, 4870], 2)
 	plt.show()
 	plt.rcParams.update({'font.size': 20})
@@ -456,3 +457,15 @@ def plot_hospitalizations_calibration(res_mdl,data,date_lst, start_date, end_dat
 	ax.set_ylabel(y_label)
 
 	return fig, ax
+
+
+def make_casulties(res_model, time_ahead, pop_israel, mu):
+	return (res_model['Vents'].sum(axis=1))[:time_ahead].sum()*pop_israel*mu*0.5
+
+
+def make_recoveries(res_model, time_ahead):
+	return (res_model['R'].sum(axis=1))[time_ahead]*100
+
+
+def make_ill_end(res_model, time_ahead, pop_israel):
+	return ((res_model['Ie']+res_model['Is']+res_model['Ia']).sum(axis=1))[time_ahead]*pop_israel

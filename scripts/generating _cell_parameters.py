@@ -753,10 +753,6 @@ def create_parameters_eps_dict(ind, age_dist):
 	with open('../Data/parameters/eps_dict.pickle', 'wb') as handle:
 		pickle.dump(eps_t, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
-	# # Save
-	# with open('../Data/parameters/init_I_IL.pickle', 'wb') as handle:
-	# 	pickle.dump(init_I_IL, handle, protocol=pickle.HIGHEST_PROTOCOL)
-
 
 def create_parameters_eps_by_region_prop(ind, age_dist):
 	### eps by region proportion
