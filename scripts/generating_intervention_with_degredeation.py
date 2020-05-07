@@ -119,7 +119,7 @@ for market_pct in range(30, 105, 5):
 
 	### setting C_inter:
 	C_calibration = {}
-	d_tot = 500
+	d_tot = 1200
 	home_inter = []
 	work_inter = []
 	leis_inter = []
