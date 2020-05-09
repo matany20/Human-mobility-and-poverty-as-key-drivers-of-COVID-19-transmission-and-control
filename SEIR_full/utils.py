@@ -610,28 +610,24 @@ def policy_degredation(
 def inter2name(
 		ind,
 		pct,
-		slipped_pct=None,
 		no_risk=False,
-		no_school=False,
-		no_kid010=False,
-		risk_slipping=False,
-		world_slipping=False
+		no_kid=False,
+		kid_019=True,
+		kid_09=False,
+		kid_04=False,
 	):
 	inter_name = ind.cell_name + '@' + str(pct)
 	if pct != 10:
 		if no_risk:
 			inter_name += '_no_risk60'
-		if no_school:
-			inter_name += '_no_school'
+		if no_kid:
+			inter_name += '_no_kid'
 		else:
-			inter_name += '_school'
-		if not no_kid010:
-			inter_name += '_kid010'
-		else:
-			inter_name += '_no_kid010'
-		if risk_slipping:
-			inter_name += '_slipped_risk('+str(slipped_pct)+')'
-		if world_slipping:
-			inter_name += '_slipped_world('+str(slipped_pct)+')'
+			if kid_019:
+				inter_name += '_kid019'
+			elif kid_09:
+				inter_name += '_kid09'
+			elif kid_04:
+				inter_name += '_kid04'
 	return inter_name
 

@@ -460,7 +460,7 @@ def plot_hospitalizations_calibration(res_mdl,data,date_lst, start_date, end_dat
 
 
 def make_casulties(res_model, time_ahead, pop_israel, mu):
-	return (res_model['Vents'].sum(axis=1))[:time_ahead].sum()*pop_israel*mu*0.5
+	return (res_model['Vents'].sum(axis=1))[:time_ahead].sum()*pop_israel*mu/3.0
 
 
 def make_recoveries(res_model, time_ahead):

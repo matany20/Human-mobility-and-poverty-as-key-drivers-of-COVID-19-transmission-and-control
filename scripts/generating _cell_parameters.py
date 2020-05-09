@@ -285,6 +285,7 @@ def create_stay_home(ind):
 															25] else 1 / 7
 									 for i in pd.date_range('2020-03-17',
 															'2020-03-25')})
+
 	result['no_100_meters'] = avg_by_dates(relative_rate, '2020-03-26',
 										   '2020-04-02',
 										   weights={i: 1 / 14 if i.day in [26,
@@ -292,11 +293,39 @@ def create_stay_home(ind):
 													for i in
 													pd.date_range('2020-03-26',
 																  '2020-04-02')})
-	result['no_bb'] = avg_by_dates(relative_rate, '2020-04-03', '2020-04-06',
-								   weights={
-								   i: 5 / 14 if i.day in [5, 6] else 1 / 7
-								   for i in
-								   pd.date_range('2020-04-03', '2020-04-06')})
+
+	result['no_bb'] = avg_by_dates(
+		relative_rate,
+		'2020-04-03',
+		'2020-04-06',
+		weights={i: 5 / 14 if i.day in [5, 6] else 1 / 7
+				 for i in pd.date_range('2020-04-03', '2020-04-06')
+				 },
+	)
+
+	result['full_lockdown'] = avg_by_dates(
+		relative_rate,
+		'2020-04-07',
+		'2020-04-16',
+		weights={i: 5 / 28 if i.day in [7, 12, 13, 16] else 1 / 21
+				 for i in pd.date_range('2020-04-07', '2020-04-16'),
+		},
+	)
+
+	weights_release = dict()
+	for i in pd.date_range('2020-04-17', '2020-05-02'):
+		if i.day in [17, 18, 24, 25, 1, 2]:
+			weights_release[i] = 1 / 21
+		elif i.day in [28, 29]:
+			weights_release[i] = 0
+		else:
+			weights_release[i] = 5 / 56
+	result['release'] = avg_by_dates(
+		relative_rate,
+		'2020-04-17',
+		'2020-05-02',
+		weights=weights_release,
+	)
 	# save
 	try:
 		os.mkdir('../Data/stay_home')
@@ -307,6 +336,8 @@ def create_stay_home(ind):
 	result['no_work'].to_csv('../Data/stay_home/no_work.csv')
 	result['no_100_meters'].to_csv('../Data/stay_home/no_100_meters.csv')
 	result['no_bb'].to_csv('../Data/stay_home/no_bb.csv')
+	result['full_lockdown'].to_csv('../Data/stay_home/full_lockdown.csv')
+	result['release'].to_csv('../Data/stay_home/release.csv')
 
 
 def create_demograph_sick_pop(ind):
@@ -364,6 +395,12 @@ def create_stay_idx_routine(ind):
 	stay_home_idx_no_bb = pd.read_csv('../Data/stay_home/no_bb.csv',
 									  index_col=0)
 	stay_home_idx_no_bb.index = stay_home_idx_no_bb.index.astype(str)
+	stay_home_idx_full_lockdown = pd.read_csv('../Data/stay_home/full_lockdown.csv',
+									  index_col=0)
+	stay_home_idx_full_lockdown.index = stay_home_idx_full_lockdown.index.astype(str)
+	stay_home_idx_release = pd.read_csv('../Data/stay_home/release.csv',
+									  index_col=0)
+	stay_home_idx_release.index = stay_home_idx_release.index.astype(str)
 
 	# reordering and expanding vector for each period:
 	stay_home_idx_school = stay_home_idx_school['mean'].values
@@ -378,20 +415,45 @@ def create_stay_idx_routine(ind):
 	stay_home_idx_no_bb = stay_home_idx_no_bb['mean'].values
 	stay_home_idx_no_bb[1] = stay_home_idx_no_bb[0]
 
+	stay_home_idx_full_lockdown = stay_home_idx_full_lockdown['mean'].values
+	stay_home_idx_full_lockdown[1] = stay_home_idx_full_lockdown[0]
+
+	stay_home_idx_release = stay_home_idx_release['mean'].values
+	stay_home_idx_release[1] = stay_home_idx_release[0]
+
 	# expanding vectors:
-	stay_home_idx_school = expand_partial_array(mapping_dic=ind.region_ga_dict,
-												array_to_expand=stay_home_idx_school,
-												size=len(ind.GA))
-	stay_home_idx_work = expand_partial_array(mapping_dic=ind.region_ga_dict,
-											  array_to_expand=stay_home_idx_work,
-											  size=len(ind.GA))
+	stay_home_idx_school = expand_partial_array(
+		mapping_dic=ind.region_ga_dict,
+		array_to_expand=stay_home_idx_school,
+		size=len(ind.GA),
+	)
+	stay_home_idx_work = expand_partial_array(
+		mapping_dic=ind.region_ga_dict,
+		array_to_expand=stay_home_idx_work,
+		size=len(ind.GA),
+	)
 	stay_home_idx_no_100_meters = expand_partial_array(
 		mapping_dic=ind.region_ga_dict,
 		array_to_expand=stay_home_idx_no_100_meters,
 		size=len(ind.GA))
-	stay_home_idx_no_bb = expand_partial_array(mapping_dic=ind.region_ga_dict,
-											   array_to_expand=stay_home_idx_no_bb,
-											   size=len(ind.GA))
+
+	stay_home_idx_no_bb = expand_partial_array(
+		mapping_dic=ind.region_ga_dict,
+		array_to_expand=stay_home_idx_no_bb,
+		size=len(ind.GA),
+	)
+
+	stay_home_idx_full_lockdown = expand_partial_array(
+		mapping_dic=ind.region_ga_dict,
+		array_to_expand=stay_home_idx_full_lockdown,
+		size=len(ind.GA),
+	)
+
+	stay_home_idx_release = expand_partial_array(
+		mapping_dic=ind.region_ga_dict,
+		array_to_expand=stay_home_idx_release,
+		size=len(ind.GA),
+	)
 	# preparing model objects:
 	stay_idx_t = []
 	routine_vector = []
@@ -421,15 +483,21 @@ def create_stay_idx_routine(ind):
 		stay_idx_t.append(stay_home_idx_no_100_meters)
 		routine_vector.append(1)
 
-	# Bnei Brak quaranrine from April 3rd - April 18th
-	d_bb = 16
+	# Bnei Brak quaranrine from April 3rd - April 6th
+	d_bb = 4
 	for i in range(d_bb):
 		stay_idx_t.append(stay_home_idx_no_bb)
 		routine_vector.append(1)
 
-	# Back to 30% market like no school and no work - April 19th forward
-	for i in range(d_tot - (d_routin + d_school + d_work + d_100 + d_bb)):
-		stay_idx_t.append(stay_home_idx_work)
+	# full lockdown from April 7rd - April 16th
+	d_full_lockdown = 10
+	for i in range(d_full_lockdown):
+		stay_idx_t.append(stay_home_idx_full_lockdown)
+		routine_vector.append(1)
+
+	# full release from April 17rd - May 2nd
+	for i in range(d_tot - (d_routin + d_school + d_work + d_100 + d_bb + d_full_lockdown)):
+		stay_idx_t.append(stay_home_idx_release)
 		routine_vector.append(1)
 
 	stay_idx_calibration = {
@@ -542,6 +610,22 @@ def create_full_matices(ind):
 		age_dist_area=age_dist_area
 	)
 
+	############ 7.4-16.4 #############
+	full_leisure_full_lockdown = create_C_mtx_leisure_work(
+		ind=ind,
+		od_mat=OD_dict['full_lockdown', 2],
+		base_mat=base_leisure,
+		age_dist_area=age_dist_area
+	)
+
+	############ 17.4 - #############
+	full_leisure_release = create_C_mtx_leisure_work(
+		ind=ind,
+		od_mat=OD_dict['release', 2],
+		base_mat=base_leisure,
+		age_dist_area=age_dist_area
+	)
+
 	# save matrix
 	try:
 		os.mkdir('../Data/base_contact_mtx')
@@ -559,6 +643,11 @@ def create_full_matices(ind):
 		full_leisure_no_100_meters)
 	scipy.sparse.save_npz('../Data/base_contact_mtx/full_leisure_no_bb.npz',
 						  full_leisure_no_bb)
+	scipy.sparse.save_npz('../Data/base_contact_mtx/full_leisure_full_lockdown.npz',
+						  full_leisure_full_lockdown)
+	scipy.sparse.save_npz(
+		'../Data/base_contact_mtx/full_leisure_release.npz',
+		full_leisure_release)
 
 	# creating school- work matrix;
 	base_work_school = base_work.copy()
@@ -618,6 +707,24 @@ def create_full_matices(ind):
 		eye_mat=eye_OD
 	)
 
+	############ 7.4-16.4 #############
+	full_work_full_lockdown = create_C_mtx_leisure_work(
+		ind=ind,
+		od_mat=OD_dict['full_lockdown', 1],
+		base_mat=base_work_school,
+		age_dist_area=age_dist_area,
+		eye_mat=eye_OD
+	)
+
+	############ 17.4 - #############
+	full_work_release = create_C_mtx_leisure_work(
+		ind=ind,
+		od_mat=OD_dict['release', 1],
+		base_mat=base_work_school,
+		age_dist_area=age_dist_area,
+		eye_mat=eye_OD
+	)
+
 	# save matrix
 	try:
 		os.mkdir('../Data/base_contact_mtx')
@@ -634,6 +741,10 @@ def create_full_matices(ind):
 		full_work_no_100_meters)
 	scipy.sparse.save_npz('../Data/base_contact_mtx/full_work_no_bb.npz',
 						  full_work_no_bb)
+	scipy.sparse.save_npz('../Data/base_contact_mtx/full_work_full_lockdown.npz',
+						  full_work_full_lockdown)
+	scipy.sparse.save_npz('../Data/base_contact_mtx/full_work_release.npz',
+						  full_work_release)
 
 	## Home Matices
 	full_home = pd.DataFrame(
@@ -841,6 +952,10 @@ def create_parameters_C_calibration(ind):
 			'../Data/base_contact_mtx/full_work_no_100_meters.npz'),
 		'no_bb': scipy.sparse.load_npz(
 			'../Data/base_contact_mtx/full_work_no_bb.npz'),
+		'full_lockdown': scipy.sparse.load_npz(
+			'../Data/base_contact_mtx/full_work_full_lockdown.npz'),
+		'release': scipy.sparse.load_npz(
+			'../Data/base_contact_mtx/full_work_release.npz'),
 	}
 
 	full_mtx_leisure = {
@@ -854,6 +969,10 @@ def create_parameters_C_calibration(ind):
 			'../Data/base_contact_mtx/full_leisure_no_100_meters.npz'),
 		'no_bb': scipy.sparse.load_npz(
 			'../Data/base_contact_mtx/full_leisure_no_bb.npz'),
+		'full_lockdown': scipy.sparse.load_npz(
+			'../Data/base_contact_mtx/full_leisure_full_lockdown.npz'),
+		'release': scipy.sparse.load_npz(
+			'../Data/base_contact_mtx/full_leisure_release.npz'),
 	}
 	C_calibration = {}
 	d_tot = 500
@@ -911,12 +1030,19 @@ def create_parameters_C_calibration(ind):
 		work_inter.append(full_mtx_work['no_bb'])
 		leis_inter.append(full_mtx_leisure['no_bb'])
 
-	# Back to 30% market like no school and no work - April 19th forward
-	for i in range(
-			d_tot - d_no_school - d_rout - d_no_work - d_no_100_meters - d_bb):
+
+	# full lockdown from April 7rd - April 16th
+	d_full_lockdown = 10
+	for i in range(d_full_lockdown):
 		home_inter.append(full_mtx_home)
-		work_inter.append(full_mtx_work['no_work'])
-		leis_inter.append(full_mtx_leisure['no_work'])
+		work_inter.append(full_mtx_work['full_lockdown'])
+		leis_inter.append(full_mtx_leisure['full_lockdown'])
+
+	# full release from April 17rd - May 2nd
+	for i in range(d_tot - (d_rout + d_no_school + d_no_work + d_no_100_meters + d_bb + d_full_lockdown)):
+		home_inter.append(full_mtx_home)
+		work_inter.append(full_mtx_work['release'])
+		leis_inter.append(full_mtx_leisure['release'])
 
 	C_calibration['home_inter'] = home_no_inter
 	C_calibration['work_inter'] = work_no_inter

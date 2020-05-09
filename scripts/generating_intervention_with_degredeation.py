@@ -18,12 +18,21 @@ from SEIR_full.indices import *
 #############################
 ## Must be run after cell parameters set to specific cell division
 
+pct = range(30, 105, 5)
+no_risk = True
+no_kid = False
+kid_019 = False
+kid_09 = False
+kid_04 = True
+
+
 """ Eras explanation:
 -first days of routine from Feb 21st - March 13th
 -first days of no school from March 14th - March 16th
 -without school and work from March 17th - March 25th
 -100 meters constrain from March 26th - April 2nd
--Bnei Brak quaranrine from April 3rd
+-Bnei Brak quaranrine from April 3rd - April 6th
+-
 """
 
 ### creating notations for intervention.
@@ -95,27 +104,16 @@ sh_no_bb = expand_partial_array(
 	size=len(ind.GA),
 )
 
-for market_pct in range(30, 105, 5):
-	### Setting parameters:
-	# market_pct of 10 means lockdown
-	no_risk = True
-	no_school = True
-	no_kid10 = True
-
-	inter_name = ind.cell_name + '@' + str(market_pct)
-	if market_pct != 10:
-		if no_risk:
-			inter_name += '_no_risk60'
-		if no_school:
-			inter_name += '_no_school'
-		else:
-			inter_name += '_school'
-		if not no_kid10:
-			inter_name += '_kid010'
-		else:
-			inter_name += '_no_kid010'
-
-
+for market_pct in pct:
+	inter_name = inter2name(
+		ind,
+		market_pct,
+		no_risk,
+		no_kid,
+		kid_019,
+		kid_09,
+		kid_04,
+	)
 
 	### setting C_inter:
 	C_calibration = {}
@@ -171,33 +169,42 @@ for market_pct in range(30, 105, 5):
 	# make inter for base
 	if market_pct != 10:
 		for group, idx in ind.age_ga_dict.items():
-			if group in ['0-4', '5-9']:
-				if no_kid10:
+			if no_kid:
+				if group in ['0-4', '5-9', '10-19']:
 					work[idx, :] = full_mtx_work['no_100_meters'][idx, :]
 					work[:, idx] = full_mtx_work['no_100_meters'][:, idx]
 
-					sh_work_inter_spec[idx] = \
-						sh_no_100_meters[idx]
-				else:
+					sh_work_inter_spec[idx] = sh_no_100_meters[idx]
+			elif kid_019:
+				if group in ['0-4', '5-9', '10-19']:
 					work[idx, :] = full_mtx_work['routine'][idx, :]
 					work[:, idx] = full_mtx_work['routine'][:, idx]
 
 					sh_work_inter_spec[idx] = 1
-			if group in ['10-19']:
-				if no_school:
-					work[idx, :] = full_mtx_work['no_100_meters'][idx, :]
-					work[:, idx] = full_mtx_work['no_100_meters'][:, idx]
-
-					sh_work_inter_spec[idx] = \
-						sh_no_100_meters[idx]
-				else:
+			elif kid_09:
+				if group in ['0-4', '5-9']:
 					work[idx, :] = full_mtx_work['routine'][idx, :]
 					work[:, idx] = full_mtx_work['routine'][:, idx]
 
 					sh_work_inter_spec[idx] = 1
+				if group in ['10-19']:
+					work[idx, :] = full_mtx_work['no_100_meters'][idx, :]
+					work[:, idx] = full_mtx_work['no_100_meters'][:, idx]
 
-			if group in ['70+', '60-69']:
-				if no_risk:
+					sh_work_inter_spec[idx] = sh_no_100_meters[idx]
+			elif kid_04:
+				if group in ['0-4']:
+					work[idx, :] = full_mtx_work['routine'][idx, :]
+					work[:, idx] = full_mtx_work['routine'][:, idx]
+
+					sh_work_inter_spec[idx] = 1
+				if group in ['5-9', '10-19']:
+					work[idx, :] = full_mtx_work['no_100_meters'][idx, :]
+					work[:, idx] = full_mtx_work['no_100_meters'][:, idx]
+
+					sh_work_inter_spec[idx] = sh_no_100_meters[idx]
+			if no_risk:
+				if group in ['70+', '60-69']:
 					work[idx, :] = full_mtx_work['no_100_meters'][idx, :]
 					work[:, idx] = full_mtx_work['no_100_meters'][:, idx]
 
