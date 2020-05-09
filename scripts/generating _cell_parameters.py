@@ -308,8 +308,7 @@ def create_stay_home(ind):
 		'2020-04-07',
 		'2020-04-16',
 		weights={i: 5 / 28 if i.day in [7, 12, 13, 16] else 1 / 21
-				 for i in pd.date_range('2020-04-07', '2020-04-16'),
-		},
+				 for i in pd.date_range('2020-04-07', '2020-04-16')},
 	)
 
 	weights_release = dict()
