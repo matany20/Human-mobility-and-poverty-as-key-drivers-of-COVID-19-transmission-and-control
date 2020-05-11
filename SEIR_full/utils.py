@@ -5,6 +5,7 @@ from scipy.stats import binom
 import pandas as pd
 import pickle
 import copy
+import gc
 
 
 def get_opposite_dict(dic, keys):
@@ -367,6 +368,28 @@ def isolate_areas(
 		base_mtx[:, ind.region_ga_dict[area]] = isolation_mtx[:, ind.region_ga_dict[area]]
 	return base_mtx
 
+
+def isolate_areas_vect(ind,base_vect_in, isolation_vect, area_lst):
+	"""
+	The function gets base_vect_in and replaces values representing the areas in area_lst from isolation_mtx.
+	:param base_vect_in: numpy array matrix
+	:param isolation_vect: numpy array matrix with the same shape as base_mtx
+	:param area_lst: areas to put in/out quarantine
+	:return: base_vect with the matching rows and columns from isolation_mtx
+	"""
+
+	# sometimes the configuration files hold a scalar value instead of vector for initial indices.
+	if (type(base_vect_in) == float) | (type(base_vect_in) == int):
+		return base_vect_in
+
+	base_vect = copy.deepcopy(base_vect_in)
+
+
+	for area in area_lst:
+		base_vect[ind.region_ga_dict[area]] = isolation_vect[ind.region_ga_dict[area]]
+	return base_vect
+
+
 def multi_inter_by_name(
 		ind,
 		model,
@@ -377,6 +400,7 @@ def multi_inter_by_name(
 		fix_vents=True,
 		deg_param=None,
 		no_pop = False,
+		min_deg_run=20,
 	):
 	if len(inter_names) == 1:
 		inter_times = []
@@ -416,28 +440,71 @@ def multi_inter_by_name(
 				transfer_pop_inter = pickle.load(pickle_in)
 
 		sim_left = inter_times[i]
+
 		if deg_param is not None:
 			if i==0:
 				curr_time = 0
 			else:
 				curr_time = np.sum(inter_times[:i])
-			C_inter, stay_home_idx_inter = policy_degredation(
-				ind,
-				C_inter,
-				C_max,
-				stay_home_idx_inter,
-				deg_param['deg_rate'],
-				range(curr_time, curr_time + sim_left, 1),
-				deg_param['max_deg_rate'],
-				True,
+			# curr_t * deg_rate,
+			# max_deg_rate
+			if (sim_left < min_deg_run) or \
+				(curr_time * deg_param['deg_rate'] > deg_param['max_deg_rate']) :
+				C_inter_deg, stay_home_idx_inter_deg = policy_degredation(
+					ind,
+					C_inter,
+					C_max,
+					stay_home_idx_inter,
+					deg_param['deg_rate'],
+					range(curr_time, curr_time + sim_left, 1),
+					deg_param['max_deg_rate'],
+					True,
+				)
+				res_mdl = model_inter.intervention(
+					C=C_inter_deg,
+					days_in_season=sim_left,
+					stay_home_idx=stay_home_idx_inter_deg,
+					not_routine=routine_t_inter,
+					prop_dict=transfer_pop_inter,
+				)
+			else:
+				time_left = sim_left
+				while time_left > 0:
+					C_inter_deg, stay_home_idx_inter_deg = policy_degredation(
+						ind,
+						C_inter,
+						C_max,
+						stay_home_idx_inter,
+						deg_param['deg_rate'],
+						range(curr_time,
+							  curr_time + min(min_deg_run, time_left),
+							  1),
+						deg_param['max_deg_rate'],
+						True,
+					)
+					res_mdl = model_inter.intervention(
+						C=C_inter_deg,
+						days_in_season=min(min_deg_run, time_left),
+						stay_home_idx=stay_home_idx_inter_deg,
+						not_routine=routine_t_inter,
+						prop_dict=transfer_pop_inter,
+					)
+					time_left -= min_deg_run
+					curr_time +=min_deg_run
+					gc.collect()
+		else:
+			res_mdl = model_inter.intervention(
+				C=C_inter,
+				days_in_season=sim_left,
+				stay_home_idx=stay_home_idx_inter,
+				not_routine=routine_t_inter,
+				prop_dict=transfer_pop_inter,
 			)
-		res_mdl = model_inter.intervention(
-			C=C_inter,
-			days_in_season=sim_left,
-			stay_home_idx=stay_home_idx_inter,
-			not_routine=routine_t_inter,
-			prop_dict=transfer_pop_inter,
-		)
+		del C_inter
+		del stay_home_idx_inter
+		del routine_t_inter
+		del transfer_pop_inter
+		gc.collect()
 
 	if fix_vents:
 		for i, vent in enumerate(res_mdl['Vents']):
@@ -569,23 +636,46 @@ def policy_degredation(
 
 	new_c = {}
 	new_sh = {}
+
+	t_factor = int(float(max_deg_rate)/deg_rate)
 	if risk_deg:
 		for key in C.keys():
 			new_c[key] = []
-			C_mat_step = (C_max[key][0] - C[key][0])
+			C_mat_step = (C_max[key][0].todense() - C[key][0].todense())
 			for curr_t in t:
-				C_mat = C[key][0].copy()
-				factor = np.minimum(
-					curr_t * deg_rate,
-					max_deg_rate) / 100.0
-				if key in ['home_non', 'work_non', 'leisure_non']:
-					C_mat += C_mat_step * factor
+				if curr_t < t_factor:
+					C_mat = copy.deepcopy(C[key][0].todense())
+					factor = np.minimum(
+						curr_t * deg_rate,
+						max_deg_rate) / 100.0
+					if key in ['home_non', 'work_non', 'leisure_non']:
+						C_mat += C_mat_step * factor
+					else:
+						idx = list(ind.age_ga_dict['60-69']) + \
+							list(ind.age_ga_dict['70+'])
+						C_mat[idx, :] += C_mat_step[idx, :] * factor
+						C_mat[:, idx] += C_mat_step[:, idx] * factor
+					C_mat = csr_matrix(C_mat)
+					new_c[key].append(C_mat)
+					del C_mat
+					gc.collect()
 				else:
-					for group, idx in ind.age_ga_dict.items():
-						if group in ['70+', '60-69']:
-							C_mat[idx, :] += C_mat_step[idx, :] * factor
-							C_mat[:, idx] += C_mat_step[:, idx] * factor
-				new_c[key].append(C_mat)
+					break
+			if t_factor <= t[-1]:
+				C_max_key = C_max[key][0].todense()
+				if key in ['home_non', 'work_non', 'leisure_non']:
+					C_mat = C_max_key
+				else:
+					C_mat = copy.deepcopy(C[key][0].todense())
+					idx = list(ind.age_ga_dict['60-69']) + \
+						  list(ind.age_ga_dict['70+'])
+					C_mat[idx, :] = C_max_key[idx, :]
+					C_mat[:, idx] = C_max_key[:, idx]
+				C_mat = csr_matrix(C_mat)
+				for curr_t in range(t_factor, t[-1]+1, 1):
+					new_c[key].append(C_mat)
+			del C_mat_step
+			gc.collect()
 		for key in sh_idx.keys():
 			new_sh[key] = {}
 			for key2 in sh_idx[key].keys():
@@ -593,17 +683,34 @@ def policy_degredation(
 				sh_idx_step = (np.ones_like(sh_idx[key][key2][0]) -
 							   sh_idx[key][key2][0])
 				for curr_t in t:
-					sh_idx_vec = sh_idx[key][key2][0].copy()
-					factor = np.minimum(
-						curr_t * deg_rate,
-						max_deg_rate) / 100.0
-					if key == 'non_inter':
-						sh_idx_vec += sh_idx_step * factor
+					if curr_t < t_factor:
+						sh_idx_vec = sh_idx[key][key2][0].copy()
+						factor = np.minimum(
+							curr_t * deg_rate,
+							max_deg_rate) / 100.0
+						if key == 'non_inter':
+							sh_idx_vec += sh_idx_step * factor
+						else:
+							idx = list(ind.age_ga_dict['60-69']) + \
+								  list(ind.age_ga_dict['70+'])
+							sh_idx_vec[idx] += sh_idx_step[idx] * factor
+						new_sh[key][key2].append(sh_idx_vec)
+						del sh_idx_vec
+						gc.collect()
 					else:
-						for group, idx in ind.age_ga_dict.items():
-							if group in ['70+', '60-69']:
-								sh_idx_vec[idx] += sh_idx_step[idx] * factor
-					new_sh[key][key2].append(sh_idx_vec)
+						break
+				if t_factor <= t[-1]:
+					if key == 'non_inter':
+						sh_idx_vec = np.ones_like(sh_idx[key][key2][0])
+					else:
+						sh_idx_vec = sh_idx[key][key2][0].copy()
+						idx = list(ind.age_ga_dict['60-69']) + \
+							  list(ind.age_ga_dict['70+'])
+						sh_idx_vec[idx] = 1
+					for curr_t in range(t_factor, t[-1]+1, 1):
+						new_sh[key][key2].append(sh_idx_vec)
+				del sh_idx_step
+				gc.collect()
 	return (new_c, new_sh)
 
 

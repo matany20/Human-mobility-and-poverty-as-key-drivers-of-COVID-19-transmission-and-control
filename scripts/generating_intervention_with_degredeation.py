@@ -18,8 +18,8 @@ from SEIR_full.indices import *
 #############################
 ## Must be run after cell parameters set to specific cell division
 
-pct = range(30, 105, 5)
-no_risk = True
+pct = [10]  #range(30, 105, 5)
+no_risk = False
 no_kid = False
 kid_019 = False
 kid_09 = False

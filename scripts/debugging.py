@@ -21,24 +21,46 @@ import time
 with (open('../Data/parameters/indices.pickle', 'rb')) as openfile:
 	ind = pickle.load(openfile)
 
-##################
-# prepare preset##
-##################
-pct_ramp = [30,100]#range(30, 105, 5)
-single_pct = 75 # the single to compare ramp to.
+last = 100
+final = mdl.inter2name(ind, last, no_risk=False)
+
+pct_ramp = range(30, last+5, 5)
+single_pct_list = [100] # the single to compare ramp to.
+kid_comb = [
+#     [
+#         {
+#             'no_kid': False,
+#             'kid_019': True,
+#         },
+#     ],
+    [
+        {
+            'no_kid': False,
+            'kid_019': False,
+            'kid_09': False,
+            'kid_04': True,
+        },
+        {
+            'no_kid': False,
+            'kid_019': False,
+            'kid_09': True,
+        },
+        {
+            'no_kid': False,
+            'kid_019': True,
+        },
+    ],
+]
+
+time2last_inter = 150 # dayes
 
 deg_param = {
-	'inter_max':mdl.inter2name(ind, 100, no_risk=False),
-	'deg_rate': 0.02,
-	'max_deg_rate': 50,
+    'inter_max':mdl.inter2name(ind, last, no_risk=False),
+#     'deg_rate': last/float(time2last_inter),
+    'deg_rate': 20,
+    'max_deg_rate': last,
 }
 # deg_param = None
-
-# interventions to examine:
-inter_list = [mdl.inter2name(ind, x, no_risk=True) for x in pct_ramp]
-inter_list[-1] = mdl.inter2name(ind, pct_ramp[-1], no_risk=True)
-
-time2last_inter = 90 # dayes
 
 # parameters to examine:
 parameters_list = [
@@ -46,18 +68,41 @@ parameters_list = [
 #     '75%',
 #     '80%',
 #     'ub',
-	'base',
+    'base',
 #     'lb',
 ]
 
 results = {}
+
+inter_lists = []
+for pct, kid_list in itertools.product(single_pct_list, kid_comb):
+	inter_lists.append([
+						   mdl.inter2name(ind, pct, no_risk=True, **kid_dict)
+						   for kid_dict in kid_list
+					   ] + [final])
+
+# for i in range(len(inter_lists)):
+#     inter_lists[i][-1] = final
+
+inter_times_lists = []
+for pct, kid_list in itertools.product(single_pct_list, kid_comb):
+	base_time = int(time2last_inter / (float(len(kid_list))))
+	time_list = []
+	for i, kid_dict in enumerate(kid_list):
+		if i == len(kid_list) - 1:
+			cur_time = time2last_inter - base_time * (len(kid_list) - 1)
+		else:
+			cur_time = base_time
+		time_list.append(cur_time)
+	inter_times_lists.append(time_list)
 
 scen = 'Scenario2'
 start_inter = pd.Timestamp('2020-05-03')
 beginning = pd.Timestamp('2020-02-20')
 
 cal_parameters = pd.read_pickle('../Data/calibration/calibrattion_dict.pickle')
-cal_parameters = {key: cal_parameters[key] for key in parameters_list}
+cal_parameters = {key: cal_parameters[ind.cell_name][key] for key in
+				  parameters_list}
 
 for key in cal_parameters.keys():
 	model = mdl.Model_behave(
@@ -75,36 +120,31 @@ for key in cal_parameters.keys():
 		stay_home_idx=mdl.stay_home_idx,
 		not_routine=mdl.not_routine,
 	)
-	delta_t = int(time2last_inter / (float(len(inter_list) - 1)))
-	inter_times = [delta_t] * (len(inter_list) - 1)
-	res_rmp = mdl.multi_inter_by_name(
+
+	_, model = mdl.multi_inter_by_name(
 		ind,
 		model,
 		mdl.pop_israel,
-		inter_list,
-		inter_times,
-		sim_length=500,
+		[mdl.inter2name(ind, 30, no_risk=False, no_kid=False, )],
+		sim_length=7,
 		fix_vents=False,
-		deg_param=deg_param,
 	)
 
-	inter_list = [
-		mdl.inter2name(ind, single_pct, no_risk=True),
-		inter_list[-1],
-	]
-	res_single = mdl.multi_inter_by_name(
-		ind,
-		model,
-		mdl.pop_israel,
-		inter_list,
-		[time2last_inter],
-		sim_length=500,
-		fix_vents=False,
-		deg_param=deg_param,
-	)
+	for i in range(len(inter_times_lists)):
+		res_mdl, _ = mdl.multi_inter_by_name(
+			ind,
+			model,
+			mdl.pop_israel,
+			inter_lists[i],
+			inter_times_lists[i],
+			sim_length=1200,
+			fix_vents=False,
+			deg_param=deg_param,
+			no_pop=True,
+		)
+		results[(key, i)] = res_mdl
 	#     # fix 60 offset
 	#     for i, vent in enumerate(res_mdl['Vents']):
 	#         res_mdl['Vents'][i] = vent + ((60.0/mdl.pop_israel)*vent)/vent.sum()
 
 	print(key, ' parameters, we got:')
-

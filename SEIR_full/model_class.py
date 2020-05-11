@@ -702,6 +702,21 @@ class Model_behave:
 			'Vents_latent': np.array(self.Vents_latent),
 		}
 
+	def get_res(self):
+		return {
+			'S': np.array(self.S),
+			'E': np.array(self.E),
+			'Ie': np.array(self.Ie),
+			'Ia': np.array(self.Ia),
+			'Is': np.array(self.Is),
+			'R': np.array(self.R),
+			'new_Is': np.array(self.new_Is),
+			'L': np.array(self.L),
+			'H': np.array(self.H),
+			'Hosp_latent': np.array(self.Hosp_latent),
+			'Vents': np.array(self.Vents),
+			'Vents_latent': np.array(self.Vents_latent),
+		}
 
 	def calculate_force_matriceis(
 			self,
@@ -727,22 +742,21 @@ class Model_behave:
 		behave_componnet_non_work = \
 			np.power(beta_behave * stay_home_idx['non_inter']['work'][t],
 					 not_routine['non_inter']['work'][t])
-
 		force_home = ((behave_componnet_inter_no_work * \
-						C['home_inter'][t].T.dot((self.Ie[-1][self.ind.inter_risk_dict['Intervention', 'Low']] +
+					   (C['home_inter'][t].T.dot((self.Ie[-1][self.ind.inter_risk_dict['Intervention', 'Low']] +
 												self.Ie[-1][self.ind.inter_risk_dict['Intervention', 'High']]) * self.alpha +
 												self.Is[-1][self.ind.inter_risk_dict['Intervention', 'Low']] +
 												self.Is[-1][self.ind.inter_risk_dict['Intervention', 'High']] +
 												self.Ia[-1][self.ind.inter_risk_dict['Intervention', 'Low']] +
-												self.Ia[-1][self.ind.inter_risk_dict['Intervention', 'High']])) +
+												self.Ia[-1][self.ind.inter_risk_dict['Intervention', 'High']])).reshape(-1)) +
 
-					behave_componnet_non_no_work * \
+					(behave_componnet_non_no_work * \
 					(C['home_non'][t].T.dot((self.Ie[-1][self.ind.inter_risk_dict['Non-intervention', 'Low']] +
 											self.Ie[-1][self.ind.inter_risk_dict['Non-intervention', 'High']]) * self.alpha +
 											self.Is[-1][self.ind.inter_risk_dict['Non-intervention', 'Low']] +
 											self.Is[-1][self.ind.inter_risk_dict['Non-intervention', 'High']] +
 											self.Ia[-1][self.ind.inter_risk_dict['Non-intervention', 'Low']] +
-											self.Ia[-1][self.ind.inter_risk_dict['Non-intervention', 'High']])))
+											self.Ia[-1][self.ind.inter_risk_dict['Non-intervention', 'High']])).reshape(-1)))
 
 		force_out = ((behave_componnet_inter_work * \
 					C['work_inter'][t].T.dot((self.Ie[-1][self.ind.inter_risk_dict['Intervention', 'Low']] +
