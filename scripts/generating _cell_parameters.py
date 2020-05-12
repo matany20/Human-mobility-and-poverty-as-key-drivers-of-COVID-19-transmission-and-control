@@ -241,9 +241,8 @@ def create_demograph_religion(ind):
 
 def create_stay_home(ind):
 	## Creating stay_home/ALL
-	home = pd.read_csv('../Data/raw/Summary_Home_0_TAZ.txt', delimiter='\t',
-					   encoding='utf-16')
-	home.columns = ['date', 'taz_id', 'stay', 'out']
+	home = pd.read_csv('../Data/raw/Summary_Home_0_TAZ.csv')
+	home = home.iloc[:, 1:]
 	home['date'] = pd.to_datetime(home['date'], dayfirst=True)
 	home['stay'] = home['stay'].apply(lambda x: x.replace(',', '')).astype(int)
 	home['out'] = home['out'].apply(lambda x: x.replace(',', '')).astype(int)
