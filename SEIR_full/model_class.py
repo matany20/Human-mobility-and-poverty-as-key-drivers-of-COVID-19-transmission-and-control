@@ -107,7 +107,6 @@ class Model_behave:
 			self.seasonality = 0
 			self.noise = 0.0
 
-
 	def reset(
 			self,
 			population_size=None,
