@@ -188,6 +188,8 @@ def MSE(
 	:return:
 	"""
 	mse = (((data - model_data_processed) ** 2).mean(axis=0)).sum()
+	if mse is None:
+		return 1e+4
 	return mse
 
 def shrink_array_sum(
@@ -600,9 +602,10 @@ def print_stat_fit_behave(fit_results_object):
 	:return:
 	"""
 	print('minimized value:', fit_results_object.fun)
-	print('Fitted parameters:\n Beta={0}\n Theta={1},\n Beta_behave={2}'.format(fit_results_object.x[:4],
+	print('Fitted parameters:\n Beta={0}\n Theta={1},\n,Beta_behave={3}'.format(fit_results_object.x[:4],
 																				  fit_results_object.x[4],
-																				  fit_results_object.x[5]))
+																				  fit_results_object.x[5],))
+
 	print('num of sampling the target function:', fit_results_object.nfev)
 
 
