@@ -30,6 +30,10 @@ with open('../Data/parameters/C_calibration.pickle', 'rb') as pickle_in:
 with open("../Data/parameters/orthodox_dist.pickle", 'rb') as pickle_in:
 	is_haredi = pickle.load(pickle_in)
 
+# Arab distribution
+with open("../Data/parameters/arab_dist.pickle", 'rb') as pickle_in:
+	is_arab = pickle.load(pickle_in)
+
 # stay home index for behavior model
 with open('../Data/parameters/stay_home_idx.pickle', 'rb') as pickle_in:
 	stay_home_idx = pickle.load(pickle_in)
@@ -66,7 +70,7 @@ gama = 1. / 7.
 delta = 1. / 2.
 
 # sigma - transition rate E to Ie
-sigma = 1. / 4.4
+sigma = 1. / 3.5
 
 # fixing parameter for beta_home
 psi = 1

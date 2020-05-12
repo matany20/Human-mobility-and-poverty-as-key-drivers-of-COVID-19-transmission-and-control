@@ -948,6 +948,21 @@ def create_parameters_is_haredim(ind):
 		pickle.dump(model_orthodox_dis, handle,
 					protocol=pickle.HIGHEST_PROTOCOL)
 
+def create_parameters_is_arab(ind):
+	### Arabs vector
+	arab_dis = pd.read_csv('../Data/demograph/religion_dis.csv', index_col=0)[
+		['cell_id', 'Druze', 'Muslim', 'Christian']].copy()
+	arab_dis.set_index('cell_id', inplace=True)
+	arab_dis.index = arab_dis.index.astype(str)
+	arab_dis = arab_dis.sum(axis=1)
+	# Creating model arab dist. and save it as pickle
+	model_arab_dis = np.zeros(len(ind.GA))
+	for i in ind.GA.keys():
+		model_arab_dis[i] = arab_dis.loc[str(ind.GA[i][0])]
+	with open('../Data/parameters/arab_dist.pickle', 'wb') as handle:
+		pickle.dump(model_arab_dis, handle,
+					protocol=pickle.HIGHEST_PROTOCOL)
+
 
 ### define indices
 ind = Indices(cell_name)
@@ -986,6 +1001,6 @@ create_parameters_C_calibration(ind)
 
 create_parameters_is_haredim(ind)
 
-
+create_parameters_is_arab(ind)
 
 

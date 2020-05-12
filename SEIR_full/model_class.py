@@ -19,8 +19,10 @@ class Model_behave:
 				[0.02927922, 0.02927922, 0.02927922, 0.04655266, 0.04655266,
 				0.05775265, 0.05775265, 0.18444245, 0.18444245]),
 			theta=2.826729434860104,
+			theta_arab=1.0,
 			beta_behave=0.5552998605894367,
 			is_haredi=is_haredi,
+			is_arab=is_arab,
 			alpha=alpha,
 			beta_home=beta_home,
 			sigma=sigma,
@@ -35,12 +37,15 @@ class Model_behave:
 			xi=xi,
 			eps=eps,
 			f=f0_full,
+			seasonality=False,
+			# e_stage=3
 	):
 		"""
 		Receives all model's hyper-parameters and creates model object
 		the results.
 		:param self:
 		:param is_haredi:
+		:param is_arab:
 		:param alpha:
 		:param beta_home:
 		:param sigma:
@@ -67,8 +72,10 @@ class Model_behave:
 
 		self.beta_j = beta_j
 		self.theta = theta
+		self.theta_arab = theta_arab
 		self.beta_behave = beta_behave
 		self.is_haredi = is_haredi
+		self.is_arab = is_arab
 		self.alpha = alpha
 		self.beta_home = beta_home
 		self.delta = delta
@@ -83,12 +90,23 @@ class Model_behave:
 		self.eta = eta
 		self.xi = xi
 		self.population_size = population_size.copy()
+		# self.e_stage = e_stage
 
 		# defining model compartments:
 		self.reset(self.population_size, self.eps)
 
 		# counter for training
 		self.fit_iter_count = 0
+
+		# seasonality parameters:
+		if seasonality:
+			self.seasonality = 1
+			self.phi = 29.0
+			self.noise = 2./9136000
+		else:
+			self.seasonality = 0
+			self.noise = 0.0
+
 
 	def reset(
 			self,
@@ -107,8 +125,8 @@ class Model_behave:
 
 		# defining model compartments:
 		self.S, self.E, self.Ie, self.Is, self.Ia, self.R, self.Vents_latent, \
-		self.H, self.new_Is, self.L, self.Vents, self.Hosp_latent = [], [], [], [], [],[], [], [], [], [], \
-																	[], []
+		self.H, self.new_Is, self.L, self.L_home, self.Vents, self.Hosp_latent = [], [], [], [], [],[], [],\
+																				 [], [], [], [], [], []
 
 		# Initializing compartments:
 		# Initialize S_0 to population size of each age-group
@@ -121,7 +139,8 @@ class Model_behave:
 		self.S[-1] -= self.R[-1]
 
 		# Initialize E
-		self.E.append(np.zeros(len(self.ind.N)))
+		# self.E.append(np.zeros((len(self.ind.N),self.e_stage)))
+		self.E.append(np.zeros((len(self.ind.N))))
 
 		# Initialize I (early)
 		self.Ie.append(np.zeros(len(self.ind.N)))
@@ -133,7 +152,7 @@ class Model_behave:
 		self.Is.append(np.zeros(len(self.ind.N)))
 
 		# Subtract E(0) and Ie(0) from S(0)
-		self.S[-1] -= (self.E[-1] + self.Ie[-1])
+		self.S[-1] -= (self.E[-1].sum(axis=1) + self.Ie[-1])
 
 		# Zero newly infected on the first day of the season
 		self.new_Is.append(np.zeros(len(self.ind.N)))
@@ -198,11 +217,13 @@ class Model_behave:
 			 fitted_params[2], fitted_params[2], fitted_params[3],
 			 fitted_params[3]])
 		theta = fitted_params[4]
+		# theta_arab = fitted_params[5]
 		beta_behave = fitted_params[5]
 
 		self.update({
 			'beta_j': fitted_beta,
 			'theta': theta,
+			# 'theta_arab': theta_arab,
 			'beta_behave': beta_behave,
 		})
 		return res_fit
@@ -433,8 +454,9 @@ class Model_behave:
 			stay_home_idx=stay_home_idx,
 			not_routine=not_routine,
 			beta_j=beta_j,
-			beta_behave=tpl[5],
-			theta=tpl[4]
+			beta_behave=tpl[6],
+			theta=tpl[4],
+			# theta_arab=tpl[5]
 		)
 
 		new_cases_model = model_res['new_Is']
@@ -564,6 +586,7 @@ class Model_behave:
 			beta_j=None,
 			beta_behave=None,
 			theta=None,
+			theta_arab=None,
 			xi=None,
 			mu=None,
 			eta=None,
@@ -579,6 +602,7 @@ class Model_behave:
 		:param beta_j:
 		:param beta_behave:
 		:param theta:
+		:param theta_arab:
 		:param xi:
 		:param mu:
 		:param eta:
@@ -592,6 +616,8 @@ class Model_behave:
 			beta_behave = self.beta_behave
 		if theta is None:
 			theta = self.theta
+		if theta_arab is None:
+			theta_arab = self.theta_arab
 		if xi is None:
 			xi = self.xi
 		if mu is None:
@@ -631,13 +657,20 @@ class Model_behave:
 				stay_home_idx=stay_home_idx,
 				not_routine=not_routine,
 			)
-			lambda_t = (self.beta_home * beta_home_factor * contact_force['home'] +
-					   beta_j * (theta * self.is_haredi + 1 - self.is_haredi) * contact_force['out'])
+			lambda_t = self.noise + (self.beta_home * beta_home_factor * contact_force['home'] +
+					   beta_j * (theta * self.is_haredi + theta_arab * self.is_arab +
+								 (1 - self.is_haredi - self.is_arab)) * contact_force['out']) * \
+					   ((np.maximum(0, 1 + np.cos((2 * np.pi * (t + self.phi)) / 365.0))) ** self.seasonality)
+
+			# print((np.maximum(0, 1 + np.cos((2 * np.pi * (t - self.phi)) / days_in_season))) ** self.seasonality)
 
 			# preventing from lambda to become nan where there is no population.
 			#lambda_t[np.isnan(lambda_t)] = 0
 
 			self.L.append(lambda_t)
+			self.L_home.append((self.beta_home * beta_home_factor * contact_force['home']) * \
+					   ((np.maximum(0, 1 + np.cos((2 * np.pi * (t + self.phi)) / 365.0))) ** self.seasonality)
+)
 
 			# fitting lambda_t size to (720X1)
 			lambda_t = expand_partial_array(
@@ -676,11 +709,16 @@ class Model_behave:
 
 			# Ie(t)
 			# Calculate new i matrix for day t
-			self.Ie.append(self.Ie[-1] + self.sigma * self.E[-1] - self.delta * self.Ie[-1])
+			self.Ie.append(self.Ie[-1] + self.sigma * self.E[-1][:, -1] - self.delta * self.Ie[-1])
 
 			# E(t)
 			# Calculate new e matrix for day t
-			self.E.append(self.eps[t] + self.E[-1] + lambda_t * self.S[-1] - self.sigma * self.E[-1])
+			# new_E_mtx = np.zeros((len(self.ind.N),self.e_stage))
+			# new_E_mtx[:, 0] = self.eps[t] + lambda_t * self.S[-1]
+			# new_E_mtx[:, -1] = self.E[-1][:, -1] + self.E[-1][:, -2] - self.sigma * self.E[-1][:, -1]
+			# new_E_mtx[:, 1:-1] = self.E[-1][:, :-2]
+			# self.E.append(new_E_mtx)
+			self.E.append(self.E[-1] + self.eps[t] + lambda_t * self.S[-1] - self.sigma * self.E[-1])
 
 			# S(t)
 			# Calculate current S
@@ -696,6 +734,7 @@ class Model_behave:
 			'R': np.array(self.R),
 			'new_Is': np.array(self.new_Is),
 			'L': np.array(self.L),
+			'L_home': np.array(self.L_home),
 			'H': np.array(self.H),
 			'Hosp_latent': np.array(self.Hosp_latent),
 			'Vents': np.array(self.Vents),
