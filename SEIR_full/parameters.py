@@ -46,10 +46,6 @@ with open('../Data/parameters/routine_t.pickle', 'rb') as pickle_in:
 with open('../Data/parameters/init_pop.pickle', 'rb') as pickle_in:
 	population_size = pickle.load(pickle_in)
 
-# Epsilon (small noise) - only for non-zero population groups
-with open('../Data/parameters/eps_dict.pickle', 'rb') as pickle_in:
-	eps = pickle.load(pickle_in)
-
 # esp - model without sectors
 with open('../Data/parameters/eps_by_region.pickle', 'rb') as pickle_in:
 	eps_sector = pickle.load(pickle_in)

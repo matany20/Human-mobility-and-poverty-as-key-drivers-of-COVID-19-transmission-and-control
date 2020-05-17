@@ -17,6 +17,7 @@ def plot_I_by_age(
 		mdl_res,
 		with_asym=False,
 		sym_only=False,
+		new_only=True,
 	):
 	"""
 
@@ -28,6 +29,7 @@ def plot_I_by_age(
 
 	Is = mdl_res['Is']
 	Ia = mdl_res['Ia']
+	new_Is = mdl_res['new_Is']
 
 	# dictionary of arrays to plot
 	plot_dict ={}
@@ -42,11 +44,15 @@ def plot_I_by_age(
 		for age in ind.A.values():
 			plot_dict[age + ' sym'] = Is[:, ind.age_dict[age]].sum(axis=1)*pop_israel
 
-	else:
+	elif not new_only:
 		ylabel = 'all'
 		for age in ind.A.values():
 			plot_dict[age] = (Is[:, ind.age_dict[age]].sum(axis=1) + \
 							 Ia[:, ind.age_dict[age]].sum(axis=1))*pop_israel
+	else:
+		ylabel = 'new_Is'
+		for age in ind.A.values():
+			plot_dict[age] = (new_Is[:, ind.age_dict[age]].sum(axis=1))*pop_israel
 
 	fig = plt.figure(figsize=(15,10))
 	ax = plt.subplot()
@@ -455,6 +461,7 @@ def plot_hospitalizations_calibration(res_mdl,data,date_lst, start_date, end_dat
 	ax = plot_df.plot(style=['-', '.'])
 	ax.set_title('Country level calibration plot')
 	ax.set_ylabel(y_label)
+	plt.show()
 
 	return fig, ax
 

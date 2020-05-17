@@ -18,12 +18,12 @@ from SEIR_full.indices import *
 #############################
 ## Must be run after cell parameters set to specific cell division
 
-pct = [10]  #range(30, 105, 5)
+pct = [10, 100]# range(30, 105, 5)
 no_risk = False
-no_kid = False
-kid_019 = False
+no_kid = True
+kid_019 = True
 kid_09 = False
-kid_04 = True
+kid_04 = False
 
 
 """ Eras explanation:
@@ -32,7 +32,9 @@ kid_04 = True
 -without school and work from March 17th - March 25th
 -100 meters constrain from March 26th - April 2nd
 -Bnei Brak quaranrine from April 3rd - April 6th
--
+-full_lockdown from April 7th - April 16th
+-release from April 17 - May 4th
+-back2routine from May 5th - May 11th
 """
 
 ### creating notations for intervention.
@@ -71,37 +73,33 @@ sh_no_bb = pd.read_csv('../Data/stay_home/no_bb.csv', index_col=0)
 sh_no_bb.index = sh_no_bb.index.astype(str)
 # reordering and expanding vector for each period:
 sh_school = sh_school['mean'].values
-sh_school[1] = sh_school[0]
 
 sh_work = sh_work['mean'].values
-sh_work[1] = sh_work[0]
 
 sh_no_100_meters = sh_no_100_meters['mean'].values
-sh_no_100_meters[1] = sh_no_100_meters[0]
 
 sh_no_bb = sh_no_bb['mean'].values
-sh_no_bb[1] = sh_no_bb[0]
 
 # expanding vectors:
 sh_school = expand_partial_array(
-	mapping_dic=ind.region_ga_dict,
+	mapping_dic=ind.region_gra_dict,
 	array_to_expand=sh_school,
-	size=len(ind.GA),
+	size=len(ind.GRA),
 )
 sh_work = expand_partial_array(
-	mapping_dic=ind.region_ga_dict,
+	mapping_dic=ind.region_gra_dict,
 	array_to_expand=sh_work,
-	size=len(ind.GA),
+	size=len(ind.GRA),
 )
 sh_no_100_meters = expand_partial_array(
-	mapping_dic=ind.region_ga_dict,
+	mapping_dic=ind.region_gra_dict,
 	array_to_expand=sh_no_100_meters,
-	size=len(ind.GA),
+	size=len(ind.GRA),
 )
 sh_no_bb = expand_partial_array(
-	mapping_dic=ind.region_ga_dict,
+	mapping_dic=ind.region_gra_dict,
 	array_to_expand=sh_no_bb,
-	size=len(ind.GA),
+	size=len(ind.GRA),
 )
 
 for market_pct in pct:
@@ -126,8 +124,7 @@ for market_pct in pct:
 	leis_no_inter = []
 
 	### setting stay_home:
-	sh_t_work_inter = []
-	sh_t_not_work_inter = []
+	sh_t_inter = []
 	routine_vector_inter = []
 	sh_t_non_inter = []
 	routine_vector_non_inter = []
@@ -137,15 +134,13 @@ for market_pct in pct:
 		work = full_mtx_work['no_100_meters']
 		leisure = full_mtx_leisure['no_100_meters']
 
-		sh_work_inter_spec = sh_no_100_meters.copy()
-		sh_not_work_inter_spec = sh_no_100_meters.copy()
+		sh_inter_spec = sh_no_100_meters.copy()
 
 	elif market_pct == 30:
 		work = full_mtx_work['no_work']
 		leisure = full_mtx_leisure['no_work']
 
-		sh_work_inter_spec = sh_work.copy()
-		sh_not_work_inter_spec = sh_work.copy()
+		sh_inter_spec = sh_work.copy()
 
 	elif market_pct > 30:
 		factor = (market_pct-30.0)/10.0
@@ -155,12 +150,9 @@ for market_pct in pct:
 				  (full_mtx_leisure['routine'] - full_mtx_leisure['no_work'])\
 				  * factor/7.0
 
-		sh_work_inter_spec = sh_work.copy() + \
+		sh_inter_spec = sh_work.copy() + \
 							(np.ones_like(sh_work) - sh_work.copy()) \
 							* factor / 7.0
-		sh_not_work_inter_spec = sh_work.copy() + \
-									(np.ones_like(sh_work) - sh_work.copy()) \
-									* factor / 7.0
 
 	else:
 		print('market_pct value is not define!')
@@ -175,7 +167,10 @@ for market_pct in pct:
 			work[idx, :] = full_mtx_work['no_100_meters'][idx, :]
 			work[:, idx] = full_mtx_work['no_100_meters'][:, idx]
 
-			sh_work_inter_spec[idx] = sh_no_100_meters[idx]
+			idx = list(ind.age_gra_dict['0-4']) + \
+				  list(ind.age_gra_dict['5-9']) + \
+				  list(ind.age_gra_dict['10-19'])
+			sh_inter_spec[idx] = sh_no_100_meters[idx]
 
 		elif kid_019:
 			idx = list(ind.age_ga_dict['0-4']) + \
@@ -184,63 +179,64 @@ for market_pct in pct:
 			work[idx, :] = full_mtx_work['routine'][idx, :]
 			work[:, idx] = full_mtx_work['routine'][:, idx]
 
-			sh_work_inter_spec[idx] = 1
+			idx = list(ind.age_gra_dict['0-4']) + \
+				  list(ind.age_gra_dict['5-9']) + \
+				  list(ind.age_gra_dict['10-19'])
+			sh_inter_spec[idx] = 1
 		elif kid_09:
 			idx09 = list(ind.age_ga_dict['0-4']) + \
 				  list(ind.age_ga_dict['5-9'])
 			work[idx09, :] = full_mtx_work['routine'][idx09, :]
 			work[:, idx09] = full_mtx_work['routine'][:, idx09]
 
-			sh_work_inter_spec[idx09] = 1
+			idx09 = list(ind.age_gra_dict['0-4']) + \
+					list(ind.age_gra_dict['5-9'])
+			sh_inter_spec[idx09] = 1
 
 			idx10_19 = list(ind.age_ga_dict['10-19'])
 			work[idx10_19, :] = full_mtx_work['no_100_meters'][idx10_19, :]
 			work[:, idx10_19] = full_mtx_work['no_100_meters'][:, idx10_19]
 
-			sh_work_inter_spec[idx10_19] = sh_no_100_meters[idx10_19]
+			idx10_19 = list(ind.age_gra_dict['10-19'])
+			sh_inter_spec[idx10_19] = sh_no_100_meters[idx10_19]
 		elif kid_04:
 			idx04 = list(ind.age_ga_dict['0-4'])
 			work[idx04, :] = full_mtx_work['routine'][idx04, :]
 			work[:, idx04] = full_mtx_work['routine'][:, idx04]
 
-			sh_work_inter_spec[idx04] = 1
+			idx04 = list(ind.age_gra_dict['0-4'])
+			sh_inter_spec[idx04] = 1
 
 			idx5_19 = list(ind.age_ga_dict['5-9']) + \
 				list(ind.age_ga_dict['10-19'])
 			work[idx5_19, :] = full_mtx_work['no_100_meters'][idx5_19, :]
 			work[:, idx5_19] = full_mtx_work['no_100_meters'][:, idx5_19]
 
-			sh_work_inter_spec[idx5_19] = sh_no_100_meters[idx5_19]
-		if no_risk:
-			idx = list(ind.age_ga_dict['60-69']) + \
-				list(ind.age_ga_dict['70+'])
-			work[idx, :] = full_mtx_work['no_100_meters'][idx, :]
-			work[:, idx] = full_mtx_work['no_100_meters'][:, idx]
-
-			leisure[idx, :] = full_mtx_leisure['no_100_meters'][idx, :]
-			leisure[:, idx] = full_mtx_leisure['no_100_meters'][:, idx]
-
-			sh_work_inter_spec[idx] = sh_no_100_meters[idx]
-			sh_not_work_inter_spec[idx] = sh_no_100_meters[idx]
+			idx5_19 = list(ind.age_gra_dict['5-9']) + \
+					  list(ind.age_gra_dict['10-19'])
+			sh_inter_spec[idx5_19] = sh_no_100_meters[idx5_19]
 
 	for i in range(d_tot):
 		home_inter.append(full_mtx_home)
 		work_inter.append(work)
 		leis_inter.append(leisure)
 
-		sh_t_work_inter.append(sh_work_inter_spec)
-		sh_t_not_work_inter.append(sh_not_work_inter_spec)
+		sh_t_inter.append(sh_inter_spec)
 		routine_vector_inter.append(np.ones_like(sh_work))
 
-	work = full_mtx_work['no_100_meters']
-	leisure = full_mtx_leisure['no_100_meters']
+	if no_risk:
+		work = full_mtx_work['no_100_meters']
+		leisure = full_mtx_leisure['no_100_meters']
 
-	sh_t_non_inter_spec = sh_no_100_meters.copy()
+		sh_t_non_inter_spec = sh_no_100_meters.copy()
+	else:
+		sh_t_non_inter_spec = sh_inter_spec
+
 	for i in range(d_tot):
 		home_no_inter.append(full_mtx_home)
 		work_no_inter.append(work)
 		leis_no_inter.append(leisure)
-		sh_t_non_inter.append(sh_no_100_meters)
+		sh_t_non_inter.append(sh_t_non_inter_spec)
 		routine_vector_non_inter.append(np.ones_like(sh_work))
 
 	C_calibration['home_inter'] = home_inter
@@ -251,21 +247,15 @@ for market_pct in pct:
 	C_calibration['leisure_non'] = leis_no_inter
 
 	sh_calibration = {
-		'non_inter':{
-			'work': sh_t_non_inter,
-			'not_work': sh_t_non_inter
-		},
-		'inter': {
-			'work': sh_t_work_inter,
-			'not_work': sh_t_not_work_inter,
-		}
+		'Non-intervention': sh_t_non_inter,
+		'Intervention': sh_t_inter,
 	}
 	routine_vector_calibration = {
-		'non_inter':{
+		'Non-intervention':{
 			'work': [1]*d_tot,
 			'not_work': [1]*d_tot,
 		},
-		'inter': {
+		'Intervention': {
 			'work': [1]*d_tot,
 			'not_work': [1]*d_tot,
 		}
@@ -275,9 +265,12 @@ for market_pct in pct:
 	transfer_pop = ind.region_risk_age_dict.copy()
 	for region, risk, age in transfer_pop.keys():
 		transfer_pop[(region, risk, age)] = 1
-		if no_risk:
-			if (risk == 'High') or (age in ['70+', '60-69']):
-				transfer_pop[(region, risk, age)] = 0.0
+		if (risk == 'High'):
+			transfer_pop[(region, risk, age)] = 0.0
+		if age in ['70+']:
+			transfer_pop[(region, risk, age)] = 0.0
+		if age in ['60-69']:
+			transfer_pop[(region, risk, age)] = 0.5
 	#     if (risk=='Low') and (age not in ['70+', '60-69']):
 	#         transfer_pop[(region, risk, age)] = 1.0
 	#     if (risk=='LOW') and (age in ['0-4']):

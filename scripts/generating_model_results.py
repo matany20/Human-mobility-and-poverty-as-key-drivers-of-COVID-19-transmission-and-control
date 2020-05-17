@@ -65,6 +65,7 @@ cal_parameters = pd.read_pickle('../Data/calibration/calibrattion_dict.pickle')
 cal_parameters = {key: cal_parameters[key] for key in parameters_list}
 
 for key in cal_parameters.keys():
+	time_in_season = 0
 	model = mdl.Model_behave(
 		ind=ind,
 		beta_j=cal_parameters[key]['beta_j'],
@@ -79,7 +80,10 @@ for key in cal_parameters.keys():
 		days_in_season=(start_inter - beginning).days,
 		stay_home_idx=mdl.stay_home_idx,
 		not_routine=mdl.not_routine,
+		start=time_in_season,
 	)
+	time_in_season += (start_inter - beginning).days
+
 	for inter_name in inter_list:
 		# First intervention
 		with open('../Data/interventions/C_inter_' + inter_name + '.pickle',
@@ -110,7 +114,9 @@ for key in cal_parameters.keys():
 			stay_home_idx=stay_home_idx_inter,
 			not_routine=routine_t_inter,
 			prop_dict=transfer_pop_inter,
+			start=time_in_season,
 		)
+		time_in_season += 300
 		for i, vent in enumerate(res_mdl['Vents']):
 			res_mdl['Vents'][i] = vent + (
 						(60.0 / mdl.pop_israel) * vent) / vent.sum()

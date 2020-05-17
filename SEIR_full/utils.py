@@ -188,7 +188,7 @@ def MSE(
 	:return:
 	"""
 	mse = (((data - model_data_processed) ** 2).mean(axis=0)).sum()
-	if mse is None:
+	if (mse is None) or (mse == np.nan):
 		return 1e+4
 	return mse
 
@@ -269,84 +269,6 @@ def Beta2beta_j(Beta):
 					Beta[3], Beta[3]])
 
 
-def calculate_force_matriceis(
-		ind,
-		C,
-		Ie,
-		Is,
-		Ia,
-		t,
-		alpha,
-		beta_behave=None,
-		stay_home_idx=None,
-		not_routine=None
-
-	):
-	"""
-	Calculates the by-product of all C-correlation tenzors with the sick
-	population for each time - home, work, leisure, fitting each j (age group)
-	and k (area) indexes.
-	:param C: C-correlation tenzors
-	:param Ie:
-	:param Is:
-	:param Ia:
-	:param t:
-	:param alpha:
-	:param beta_behave:
-	:param stay_home_idx:
-	:param not_routine:
-	:return:
-	"""
-	# Calculating beta_behave components:
-	if not((beta_behave is None) and (stay_home_idx is None) and (not_routine is None)):
-		behave_componnet_inter_no_work = (beta_behave * stay_home_idx['inter']['not_work'][t]) ** \
-										 not_routine['inter']['not_work'][t]
-
-		behave_componnet_non_no_work = (beta_behave * stay_home_idx['non_inter']['not_work'][t]) ** \
-										 not_routine['non_inter']['not_work'][t]
-
-		behave_componnet_inter_work = (beta_behave * stay_home_idx['inter']['work'][t]) ** \
-									   not_routine['inter']['work'][t]
-
-		behave_componnet_non_work = (beta_behave * stay_home_idx['non_inter']['work'][t]) ** \
-									   not_routine['non_inter']['work'][t]
-
-
-	force_home = (behave_componnet_inter_no_work *\
-				  C['home_inter'][t].T.dot((Ie[ind.inter_risk_dict['Intervention', 'Low']] + Ie[ind.inter_risk_dict['Intervention', 'High']]) * alpha +
-											Is[ind.inter_risk_dict['Intervention', 'Low']] + Is[ind.inter_risk_dict['Intervention', 'High']] +
-											Ia[ind.inter_risk_dict['Intervention', 'Low']] + Ia[ind.inter_risk_dict['Intervention', 'High']]) +
-
-				   behave_componnet_non_no_work *\
-				  C['home_non'][t].T.dot((Ie[ind.inter_risk_dict['Non-intervention', 'Low']] + Ie[ind.inter_risk_dict['Non-intervention', 'High']]) * alpha +
-										 Is[ind.inter_risk_dict['Non-intervention', 'Low']] +Is[ind.inter_risk_dict[ 'Non-intervention', 'High']] +
-										 Ia[ind.inter_risk_dict['Non-intervention', 'Low']] + Ia[ind.inter_risk_dict['Non-intervention', 'High']]))
-
-	force_out = (behave_componnet_inter_work * \
-				  C['work_inter'][t].T.dot((Ie[ind.inter_risk_dict['Intervention', 'Low']] + Ie[ind.inter_risk_dict['Intervention', 'High']]) * alpha +
-										   Is[ind.inter_risk_dict['Intervention', 'Low']] + Is[ind.inter_risk_dict['Intervention', 'High']] +
-										   Ia[ind.inter_risk_dict['Intervention', 'Low']] + Ia[ind.inter_risk_dict['Intervention', 'High']]) +
-
-				  behave_componnet_non_work *\
-				  C['work_non'][t].T.dot((Ie[ind.inter_risk_dict['Non-intervention', 'Low']] + Ie[ind.inter_risk_dict['Non-intervention', 'High']]) * alpha +
-										 Is[ind.inter_risk_dict['Non-intervention', 'Low']] + Is[ind.inter_risk_dict['Non-intervention', 'High']] +
-										 Ia[ind.inter_risk_dict['Non-intervention', 'Low']] + Ia[ind.inter_risk_dict['Non-intervention', 'High']]) +
-
-				 behave_componnet_inter_no_work *\
-				 C['leisure_inter'][t].T.dot((Ie[ind.inter_risk_dict['Intervention', 'Low']] + Ie[ind.inter_risk_dict['Intervention', 'High']]) * alpha +
-											  Is[ind.inter_risk_dict['Intervention', 'Low']] + Is[ind.inter_risk_dict['Intervention', 'High']] +
-											  Ia[ind.inter_risk_dict['Intervention', 'Low']] + Ia[ind.inter_risk_dict['Intervention', 'High']]) +
-
-				 behave_componnet_non_no_work*\
-				 C['leisure_non'][t].T.dot((Ie[ind.inter_risk_dict['Non-intervention', 'Low']] + Ie[ind.inter_risk_dict['Non-intervention', 'High']]) * alpha +
-											Is[ind.inter_risk_dict['Non-intervention', 'Low']] + Is[ind.inter_risk_dict['Non-intervention', 'High']] +
-											Ia[ind.inter_risk_dict['Non-intervention', 'Low']] + Ia[ind.inter_risk_dict['Non-intervention', 'High']]))
-	return {
-		'out': force_out,
-		'home': force_home
-	}
-
-
 def isolate_areas(
 		ind,
 		base_mtx,
@@ -361,7 +283,7 @@ def isolate_areas(
 	:param area_lst: areas to put in/out quarantine
 	:return: base_mtx with the matching rows and columns from isolation_mtx
 	"""
-	base_mtx = base_mtx.copy()
+	base_mtx = copy.deepcopy(base_mtx)
 
 	for area in area_lst:
 		# switch rows:
@@ -388,7 +310,7 @@ def isolate_areas_vect(ind,base_vect_in, isolation_vect, area_lst):
 
 
 	for area in area_lst:
-		base_vect[ind.region_ga_dict[area]] = isolation_vect[ind.region_ga_dict[area]]
+		base_vect[ind.region_gra_dict[area]] = isolation_vect[ind.region_gra_dict[area]]
 	return base_vect
 
 
@@ -397,13 +319,15 @@ def multi_inter_by_name(
 		model,
 		is_pop,
 		inter_names,
-		inter_times = None,
+		inter_times=None,
 		sim_length=300,
 		fix_vents=True,
 		deg_param=None,
-		no_pop = False,
+		no_pop=False,
 		min_deg_run=20,
+		start=0,
 	):
+	time_in_season = start
 	if len(inter_names) == 1:
 		inter_times = []
 		inter_times.append(sim_length)
@@ -468,7 +392,9 @@ def multi_inter_by_name(
 					stay_home_idx=stay_home_idx_inter_deg,
 					not_routine=routine_t_inter,
 					prop_dict=transfer_pop_inter,
+					start=time_in_season,
 				)
+				time_in_season += sim_left
 			else:
 				time_left = sim_left
 				while time_left > 0:
@@ -490,7 +416,9 @@ def multi_inter_by_name(
 						stay_home_idx=stay_home_idx_inter_deg,
 						not_routine=routine_t_inter,
 						prop_dict=transfer_pop_inter,
+						start=time_in_season,
 					)
+					time_in_season += sim_left
 					time_left -= min_deg_run
 					curr_time +=min_deg_run
 					gc.collect()
@@ -501,7 +429,9 @@ def multi_inter_by_name(
 				stay_home_idx=stay_home_idx_inter,
 				not_routine=routine_t_inter,
 				prop_dict=transfer_pop_inter,
+				start=time_in_season,
 			)
+			time_in_season += sim_left
 		del C_inter
 		del stay_home_idx_inter
 		del routine_t_inter
@@ -516,7 +446,17 @@ def multi_inter_by_name(
 	return (res_mdl, model_inter)
 
 
-def automatic_global_stop_inter(model, is_pop, inter_name, closed_inter, thresh=4960, thresh_var='Vents', sim_length=300):
+def automatic_global_stop_inter(
+		model,
+		is_pop,
+		inter_name,
+		closed_inter,
+		thresh=4960,
+		thresh_var='Vents',
+		sim_length=300,
+		start=0,
+	):
+	time_in_season=start
 	# First intervention
 	with open('../Data/interventions/C_inter_' + inter_name + '.pickle',
 			  'rb') as pickle_in:
@@ -560,6 +500,7 @@ def automatic_global_stop_inter(model, is_pop, inter_name, closed_inter, thresh=
 		stay_home_idx=stay_home_idx_inter,
 		not_routine=routine_t_inter,
 		prop_dict=transfer_pop_inter,
+		start=time_in_season,
 	)
 
 	days_to_closing = (res_mdl[thresh_var].sum(
@@ -576,13 +517,16 @@ def automatic_global_stop_inter(model, is_pop, inter_name, closed_inter, thresh=
 		stay_home_idx=stay_home_idx_inter,
 		not_routine=routine_t_inter,
 		prop_dict=transfer_pop_inter,
+		start=time_in_season,
 	)
+	time_in_season += days_to_closing
 	res_mdl_close = model_inter.intervention(
 		C=C_close,
 		days_in_season=sim_length-days_to_closing,
 		stay_home_idx=stay_home_idx_close,
 		not_routine=routine_t_close,
 		prop_dict=None,
+		start=time_in_season,
 	)
 
 	for i, vent in enumerate(res_mdl['Vents']):
@@ -602,7 +546,7 @@ def print_stat_fit_behave(fit_results_object):
 	:return:
 	"""
 	print('minimized value:', fit_results_object.fun)
-	print('Fitted parameters:\n Beta={0}\n Theta={1},\n,Beta_behave={3}'.format(fit_results_object.x[:4],
+	print('Fitted parameters:\n Beta={0}\n Theta={1},\n,Beta_behave={2}'.format(fit_results_object.x[:4],
 																				  fit_results_object.x[4],
 																				  fit_results_object.x[5],))
 
@@ -729,7 +673,7 @@ def inter2name(
 	inter_name = ind.cell_name + '@' + str(pct)
 	if pct != 10:
 		if no_risk:
-			inter_name += '_no_risk60'
+			inter_name += '_no_risk65'
 		if no_kid:
 			inter_name += '_no_kid'
 		else:
@@ -741,3 +685,50 @@ def inter2name(
 				inter_name += '_kid04'
 	return inter_name
 
+def save_cal(res_fit, ind, scen, phase, no_mobility, no_haredim):
+	cal_parameters = pd.read_pickle('../Data/calibration/calibration_dict.pickle')
+	if no_mobility:
+		cal_parameters[ind.cell_name][(int(scen[-1]), phase, 'no_mobility')] = {
+			'beta_j': Beta2beta_j(
+				[res_fit.x[0], res_fit.x[1], res_fit.x[2], res_fit.x[3]]),
+			'theta': res_fit.x[4],
+			'beta_behave': res_fit.x[5],
+		}
+	elif no_haredim:
+		cal_parameters[ind.cell_name][(int(scen[-1]), phase, 'no_haredim')] = {
+			'beta_j': Beta2beta_j(
+				[res_fit.x[0], res_fit.x[1], res_fit.x[2], res_fit.x[3]]),
+			'theta': res_fit.x[4],
+			'beta_behave': res_fit.x[5],
+		}
+	else:
+		cal_parameters[ind.cell_name][(int(scen[-1]), phase)] = {
+			'beta_j': Beta2beta_j([res_fit.x[0], res_fit.x[1], res_fit.x[2], res_fit.x[3]]),
+			'theta': res_fit.x[4],
+			'beta_behave': res_fit.x[5],
+		}
+	with open('../Data/calibration/calibration_dict.pickle', 'wb') as handle:
+		pickle.dump(cal_parameters, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+
+def save_cal_track(res_fit, ind, scen, phase, track):
+	cal_parameters = pd.read_pickle(
+		'../Data/calibration/calibration_dict.pickle')
+	if track == 'H':
+		cal_parameters[ind.cell_name][(int(scen[-1]), phase)]['eta'] = \
+			res_fit.x[0]
+		cal_parameters[ind.cell_name][(int(scen[-1]), phase)]['nu'] = \
+			res_fit.x[1]
+
+	elif track == 'Vents':
+
+		cal_parameters[ind.cell_name][(int(scen[-1]), phase)]['xi'] = \
+			res_fit.x[0]
+		cal_parameters[ind.cell_name][(int(scen[-1]), phase)]['mu'] = \
+			res_fit.x[1]
+	with open('../Data/calibration/calibration_dict.pickle', 'wb') as handle:
+		pickle.dump(cal_parameters, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+
+def num2scen(num):
+	return 'Scenario'+str(num)
