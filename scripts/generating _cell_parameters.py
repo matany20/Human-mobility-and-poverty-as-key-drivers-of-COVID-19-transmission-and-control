@@ -983,6 +983,33 @@ def create_parameters_is_arab(ind):
 					protocol=pickle.HIGHEST_PROTOCOL)
 
 
+def create_init_pop(ind):
+	age_dist_area = pd.read_csv('../Data/demograph/age_dist_area.csv')
+	age_dist_area.drop(['Unnamed: 0'], axis=1, inplace=True)
+	age_dist_area.set_index('cell_id', inplace=True)
+	age_dist_area = age_dist_area.stack()
+	init_pop = expand_partial_array(ind.region_age_dict, age_dist_area.values,
+									len(ind.N))
+	init_pop[ind.inter_dict['Intervention']] = 0
+	risk_pop = pd.read_csv('../Data/raw/risk_dist.csv')
+	risk_pop.set_index('Age', inplace=True)
+	risk_pop['High'] = risk_pop['risk']
+	risk_pop['Low'] = 1 - risk_pop['risk']
+	risk_pop.drop(['risk'], axis=1, inplace=True)
+	risk_pop = risk_pop.stack()
+	risk_pop.index = risk_pop.index.swaplevel(0, 1)
+	risk_pop = risk_pop.unstack().stack()
+
+	for (r, a), g_idx in zip(ind.risk_age_dict.keys(),
+							 ind.risk_age_dict.values()):
+		init_pop[g_idx] = init_pop[g_idx] * risk_pop[r, a]
+
+	# Age distribution:
+	pop_dist = init_pop
+	# Save
+	with open('../Data/parameters/init_pop.pickle', 'wb') as handle:
+		pickle.dump(pop_dist, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
 ### define indices
 ind = Indices(cell_name)
 
@@ -1020,4 +1047,5 @@ create_parameters_is_haredim(ind)
 
 create_parameters_is_arab(ind)
 
+create_init_pop(ind)
 
