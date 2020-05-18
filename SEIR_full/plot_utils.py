@@ -476,3 +476,37 @@ def make_recoveries(res_model, time_ahead):
 
 def make_ill_end(res_model, time_ahead, pop_israel):
 	return ((res_model['Ie']+res_model['Is']+res_model['Ia']).sum(axis=1))[time_ahead]*pop_israel
+
+
+def make_casulties_interval(
+		ind,
+		res_mdl,
+		time_ahead,
+		pop_israel,
+		mu,
+		xi,
+		gamma,
+		vents_conf,
+	):
+
+	casulties = {}
+	options = ['pr_vents_ub', 'pr_vents_lb']
+	for vent_col in options:
+		chi = expand_partial_array(ind.risk_age_dict,
+									vents_conf[vent_col].values,
+									len(ind.N))
+		vents = {}
+		vents['Vents'] = [np.zeros_like(res_mdl['Is'][0])]
+		vents_latent = [np.zeros_like(res_mdl['Is'][0])]
+		for t in range(len(res_mdl['Is'][:time_ahead])):
+			vents['Vents'].append(
+				vents['Vents'][t] + xi * vents_latent[t] - mu * vents['Vents'][t])
+
+			# Vents_latent(t)
+			vents_latent.append(
+				vents_latent[t] + (chi * gama) * res_mdl['Is'][t] -
+				xi * vents_latent[t])
+		vents['Vents'] = np.array(vents['Vents'])
+		casulties[vent_col] = make_casulties(vents, time_ahead, pop_israel, mu)
+
+	return tuple(casulties.values())
