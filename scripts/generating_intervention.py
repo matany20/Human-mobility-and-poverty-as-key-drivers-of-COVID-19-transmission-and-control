@@ -20,7 +20,7 @@ from SEIR_full.indices import *
 
 pct = [10, 100]# range(30, 105, 5)
 no_risk = False
-no_kid = True
+no_kid = False
 kid_019 = True
 kid_09 = False
 kid_04 = False
