@@ -64,6 +64,12 @@ def make_calibration(
 		0.38)  # initial guess
 		bnds = ((0, 0.3), (0, 0.2), (0, 0.2), (0, 0.6), (1, 1),
 				(0, 1))  # boundries for variables
+	elif no_mobility:
+		p0 = (
+		0.04066847, 0.02242699, 0.01883845, 0.10270542, 2.0684200685446243,
+		0.38)  # initial guess
+		bnds = ((0, 1000), (0, 1000), (0, 1000), (0, 1000), (1.5, 3),
+				(0, 1))  # boundries for variables
 	else:
 		p0 = (0.04066847, 0.02242699, 0.01883845, 0.10270542, 2.0684200685446243,
 			  0.38)  # initial guess
@@ -103,6 +109,8 @@ def make_calibration(
 		scen_idx=int(scen[-1]),
 		phase=phase,
 		start_sim=start_sim,
+		no_mobility=no_mobility,
+		no_haredim=no_haredim,
 	)
 
 
@@ -111,6 +119,8 @@ def make_track_calibration(
 		phase,
 		ind,
 		start_sim='2020-02-20',
+		no_mobility=False,
+		no_haredim=False,
 	):
 
 	df = pd.read_csv('../Data/sick/daily_hospital_resp.csv')
@@ -125,6 +135,8 @@ def make_track_calibration(
 		phase=phase,
 		ind=ind,
 		start_sim=start_sim,
+		no_mobility=no_mobility,
+		no_haredim=no_haredim,
 	)
 
 	show_calibration_track_spec(
@@ -134,6 +146,8 @@ def make_track_calibration(
 		phase=phase,
 		ind=ind,
 		start_sim=start_sim,
+		no_mobility=no_mobility,
+		no_haredim=no_haredim,
 	)
 
 	make_spec_track(
@@ -143,6 +157,8 @@ def make_track_calibration(
 		phase=phase,
 		ind=ind,
 		start_sim=start_sim,
+		no_mobility=no_mobility,
+		no_haredim=no_haredim,
 	)
 
 	show_calibration_track_spec(
@@ -152,6 +168,8 @@ def make_track_calibration(
 		phase=phase,
 		ind=ind,
 		start_sim=start_sim,
+		no_mobility=no_mobility,
+		no_haredim=no_haredim,
 	)
 
 
@@ -162,6 +180,8 @@ def make_spec_track(
 		phase,
 		ind,
 		start_sim='2020-02-20',
+		no_mobility=False,
+		no_haredim=False,
 	):
 
 	# fit params
@@ -221,7 +241,7 @@ def make_spec_track(
 		tracking=state_str
 	)
 
-	save_cal_track(res_fit_track, ind, scen, phase, state)
+	save_cal_track(res_fit_track, ind, scen, phase, state, no_mobility, no_haredim)
 	print_stat_fit_hosp(res_fit_track, tracking=state_str)
 
 
@@ -271,6 +291,8 @@ def show_calibration(
 		scen_idx=1,
 		phase='-',
 		start_sim='2020-02-20',
+		no_mobility=False,
+		no_haredim=False,
 	):
 
 	show_calibration_param(
@@ -278,6 +300,8 @@ def show_calibration(
 		scen_idx=scen_idx,
 		phase=phase,
 		start_sim=start_sim,
+		no_mobility=no_mobility,
+		no_haredim=no_haredim,
 	)
 
 	show_calibration_track(
@@ -285,6 +309,8 @@ def show_calibration(
 		phase=phase,
 		ind=ind,
 		start_sim=start_sim,
+		no_mobility=no_mobility,
+		no_haredim=no_haredim,
 	)
 
 
@@ -293,6 +319,8 @@ def show_calibration_param(
 		scen_idx=1,
 		phase='-',
 		start_sim='2020-02-20',
+		no_mobility=False,
+		no_haredim=False,
 	):
 	print('Results for ', scen_idx, ' and for seasonality ', phase, ':')
 	# parameters:
@@ -327,18 +355,34 @@ def show_calibration_param(
 
 	cal_parameters = pd.read_pickle(
 		'../Data/calibration/calibration_dict.pickle')
-
+	if no_haredim:
+		cal_tpl = (scen_idx, phase, 'no_haredim')
+	elif no_mobility:
+		cal_tpl = (scen_idx, phase, 'no_mobility')
+	else:
+		cal_tpl = (scen_idx, phase)
 	model = Model_behave(
 		ind=ind,
-		beta_j=cal_parameters[ind.cell_name][(scen_idx, phase)]['beta_j'],
-		theta=cal_parameters[ind.cell_name][(scen_idx, phase)]['theta'],
-		beta_behave=cal_parameters[ind.cell_name][(scen_idx, phase)][
+		beta_j=cal_parameters[ind.cell_name][cal_tpl]['beta_j'],
+		theta=cal_parameters[ind.cell_name][cal_tpl]['theta'],
+		beta_behave=cal_parameters[ind.cell_name][cal_tpl][
 			'beta_behave'],
 		scen=num2scen(scen_idx),
 		seasonality=seasonality,
 		phi=phi,
 	)
-
+	if no_mobility:
+		C = {}
+		sh = {}
+		for key in C_calibration.keys():
+			C[key] = [np.ones_like(C_calibration[key][0])] * len(
+				C_calibration[key])
+		for key in stay_home_idx.keys():
+			sh[key] = [np.ones_like(stay_home_idx[key][0])] * len(
+				stay_home_idx[key])
+	else:
+		C = C_calibration
+		sh = stay_home_idx
 	loss = model.calc_loss(
 		(model.beta_j[0],
 		 model.beta_j[3],
@@ -347,8 +391,8 @@ def show_calibration_param(
 		 model.theta,
 		 model.beta_behave,),
 		data,
-		C_calibration,
-		stay_home_idx,
+		C,
+		sh,
 		not_routine,
 		date_lst,
 		start_data,
@@ -360,18 +404,18 @@ def show_calibration_param(
 
 	print(
 		'Fit Loss: {3}\nFitted parameters:\n Beta={0}\n Theta={1},\n,Beta_behave={2}, '.format(
-			cal_parameters[ind.cell_name][(scen_idx, phase)]['beta_j'][[0, 3, 5, 7]],
-			cal_parameters[ind.cell_name][(scen_idx, phase)]['theta'],
-			cal_parameters[ind.cell_name][(scen_idx, phase)][
+			cal_parameters[ind.cell_name][cal_tpl]['beta_j'][[0, 3, 5, 7]],
+			cal_parameters[ind.cell_name][cal_tpl]['theta'],
+			cal_parameters[ind.cell_name][cal_tpl][
 				'beta_behave'],
 			loss,)
 	)
 
 	# generate fitting graph:
 	res_mdl_ml = model.predict(
-		C=C_calibration,
+		C=C,
 		days_in_season=len(date_lst),
-		stay_home_idx=stay_home_idx,
+		stay_home_idx=sh,
 		not_routine=not_routine,
 	)
 
@@ -458,6 +502,8 @@ def show_calibration_track(
 		phase,
 		ind,
 		start_sim='2020-02-20',
+		no_mobility=False,
+		no_haredim=False,
 	):
 
 	df = pd.read_csv('../Data/sick/daily_hospital_resp.csv')
@@ -472,6 +518,8 @@ def show_calibration_track(
 		phase=phase,
 		ind=ind,
 		start_sim=start_sim,
+		no_mobility=no_mobility,
+		no_haredim=no_haredim,
 	)
 
 	show_calibration_track_spec(
@@ -481,6 +529,8 @@ def show_calibration_track(
 		phase=phase,
 		ind=ind,
 		start_sim=start_sim,
+		no_mobility=no_mobility,
+		no_haredim=no_haredim,
 	)
 
 
@@ -492,6 +542,8 @@ def show_calibration_track_spec(
 		phase,
 		ind,
 		start_sim='2020-02-20',
+		no_mobility=False,
+		no_haredim=False,
 	):
 
 	# fit params
@@ -512,36 +564,67 @@ def show_calibration_track_spec(
 	cal_parameters = pd.read_pickle(
 		'../Data/calibration/calibration_dict.pickle')
 
+	if no_haredim:
+		cal_tpl = (scen_idx, phase, 'no_haredim')
+	elif no_mobility:
+		cal_tpl = (scen_idx, phase, 'no_mobility')
+	else:
+		cal_tpl = (scen_idx, phase)
+
+	print(state)
+	if state == 'H':
+		state_str = 'hosp'
+		eta = cal_parameters[ind.cell_name][cal_tpl]['eta']
+		nu = cal_parameters[ind.cell_name][cal_tpl]['nu']
+		xi=9
+		mu=0
+		param_tpl = (eta, nu)
+
+	elif state == 'Vents':
+		print(cal_parameters[ind.cell_name][cal_tpl]['xi'])
+		state_str = 'vents'
+		xi = cal_parameters[ind.cell_name][cal_tpl]['xi']
+		mu = cal_parameters[ind.cell_name][cal_tpl]['mu']
+		eta=0
+		nu=0
+		param_tpl = (xi, mu)
+
 	model = Model_behave(
 		ind=ind,
-		beta_j=cal_parameters[ind.cell_name][(scen_idx, phase)]['beta_j'],
-		theta=cal_parameters[ind.cell_name][(scen_idx, phase)]['theta'],
-		beta_behave=cal_parameters[ind.cell_name][(scen_idx, phase)][
+		beta_j=cal_parameters[ind.cell_name][cal_tpl]['beta_j'],
+		theta=cal_parameters[ind.cell_name][cal_tpl]['theta'],
+		beta_behave=cal_parameters[ind.cell_name][cal_tpl][
 			'beta_behave'],
-		eta=cal_parameters[ind.cell_name][(scen_idx, phase)]['eta'],
-		nu=cal_parameters[ind.cell_name][(scen_idx, phase)]['nu'],
-		xi=cal_parameters[ind.cell_name][(scen_idx, phase)]['xi'],
-		mu=cal_parameters[ind.cell_name][(scen_idx, phase)]['mu'],
+		eta=eta,
+		nu=nu,
+		xi=xi,
+		mu=mu,
 		scen=scen,
 		seasonality=seasonality,
 		phi=phi,
 	)
 
 	model.reset()
-	if state == 'H':
-		state_str = 'hosp'
-		param_tpl = (model.eta, model.nu)
-	elif state == 'Vents':
-		state_str = 'vents'
-		param_tpl = (model.xi, model.mu)
 
+	if no_mobility:
+		C = {}
+		sh = {}
+		for key in C_calibration.keys():
+			C[key] = [np.ones_like(C_calibration[key][0])] * len(
+				C_calibration[key])
+		for key in stay_home_idx.keys():
+			sh[key] = [np.ones_like(stay_home_idx[key][0])] * len(
+				stay_home_idx[key])
+	else:
+		C = C_calibration
+		sh = stay_home_idx
 
 	loss = model.calc_loss_tracking(
 		param_tpl,
 		data.values,
-		C_calibration,
+		C,
 		len(date_lst),
-		stay_home_idx,
+		sh,
 		not_routine,
 		date_lst,
 		start_data,
@@ -554,22 +637,22 @@ def show_calibration_track_spec(
 	if state_str == 'hosp':
 		print(
 			'Fit Loss: {2}\nFitted parameters:\n Eta={0}\n Nu={1},\n '.format(
-				cal_parameters[ind.cell_name][(scen_idx, phase)]['eta'],
-				cal_parameters[ind.cell_name][(scen_idx, phase)]['nu'],
+				cal_parameters[ind.cell_name][cal_tpl]['eta'],
+				cal_parameters[ind.cell_name][cal_tpl]['nu'],
 				loss
 			)
 		)
 	elif state_str == 'vents':
 		print('Fit Loss: {2}\nFitted parameters:\n Xi={0}\n Mu={1},\n '.format(
-			cal_parameters[ind.cell_name][(scen_idx, phase)]['xi'],
-			cal_parameters[ind.cell_name][(scen_idx, phase)]['mu'],
+			cal_parameters[ind.cell_name][cal_tpl]['xi'],
+			cal_parameters[ind.cell_name][cal_tpl]['mu'],
 			loss,
 		))
 
 	res_mdl = model.predict(
-		C=C_calibration,
+		C=C,
 		days_in_season=200,
-		stay_home_idx=stay_home_idx,
+		stay_home_idx=sh,
 		not_routine=not_routine,
 	)
 	plot_hospitalizations_calibration(

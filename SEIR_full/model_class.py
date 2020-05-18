@@ -105,7 +105,7 @@ class Model_behave:
 		# seasonality parameters:
 		if seasonality:
 			self.seasonality = 1
-			self.noise = 2./9136000
+			self.noise = 0.1/pop_israel
 			if phi is None:
 				self.phi = 29.0
 			else:

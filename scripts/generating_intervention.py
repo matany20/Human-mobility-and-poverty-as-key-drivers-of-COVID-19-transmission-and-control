@@ -269,7 +269,7 @@ for market_pct in pct:
 			transfer_pop[(region, risk, age)] = 0.0
 		if age in ['70+']:
 			transfer_pop[(region, risk, age)] = 0.0
-		if age in ['60-69']:
+		if (risk == 'Low')and (age in ['60-69']):
 			transfer_pop[(region, risk, age)] = 0.5
 	#     if (risk=='Low') and (age not in ['70+', '60-69']):
 	#         transfer_pop[(region, risk, age)] = 1.0

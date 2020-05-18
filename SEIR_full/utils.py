@@ -688,43 +688,42 @@ def inter2name(
 def save_cal(res_fit, ind, scen, phase, no_mobility, no_haredim):
 	cal_parameters = pd.read_pickle('../Data/calibration/calibration_dict.pickle')
 	if no_mobility:
-		cal_parameters[ind.cell_name][(int(scen[-1]), phase, 'no_mobility')] = {
-			'beta_j': Beta2beta_j(
-				[res_fit.x[0], res_fit.x[1], res_fit.x[2], res_fit.x[3]]),
-			'theta': res_fit.x[4],
-			'beta_behave': res_fit.x[5],
-		}
+		cal_tpl = (int(scen[-1]), phase, 'no_mobility')
 	elif no_haredim:
-		cal_parameters[ind.cell_name][(int(scen[-1]), phase, 'no_haredim')] = {
-			'beta_j': Beta2beta_j(
-				[res_fit.x[0], res_fit.x[1], res_fit.x[2], res_fit.x[3]]),
-			'theta': res_fit.x[4],
-			'beta_behave': res_fit.x[5],
-		}
+		cal_tpl = (int(scen[-1]), phase, 'no_haredim')
 	else:
-		cal_parameters[ind.cell_name][(int(scen[-1]), phase)] = {
-			'beta_j': Beta2beta_j([res_fit.x[0], res_fit.x[1], res_fit.x[2], res_fit.x[3]]),
-			'theta': res_fit.x[4],
-			'beta_behave': res_fit.x[5],
-		}
+		cal_tpl = (int(scen[-1]), phase)
+	cal_parameters[ind.cell_name][cal_tpl] = {
+		'beta_j': Beta2beta_j(
+			[res_fit.x[0], res_fit.x[1], res_fit.x[2], res_fit.x[3]]),
+		'theta': res_fit.x[4],
+		'beta_behave': res_fit.x[5],
+	}
 	with open('../Data/calibration/calibration_dict.pickle', 'wb') as handle:
 		pickle.dump(cal_parameters, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 
-def save_cal_track(res_fit, ind, scen, phase, track):
+def save_cal_track(res_fit, ind, scen, phase, track, no_mobility, no_haredim):
 	cal_parameters = pd.read_pickle(
 		'../Data/calibration/calibration_dict.pickle')
+	if no_mobility:
+		cal_tpl = (int(scen[-1]), phase, 'no_mobility')
+	elif no_haredim:
+		cal_tpl = (int(scen[-1]), phase, 'no_haredim')
+	else:
+		cal_tpl = (int(scen[-1]), phase)
+
 	if track == 'H':
-		cal_parameters[ind.cell_name][(int(scen[-1]), phase)]['eta'] = \
+		cal_parameters[ind.cell_name][cal_tpl]['eta'] = \
 			res_fit.x[0]
-		cal_parameters[ind.cell_name][(int(scen[-1]), phase)]['nu'] = \
+		cal_parameters[ind.cell_name][cal_tpl]['nu'] = \
 			res_fit.x[1]
 
 	elif track == 'Vents':
 
-		cal_parameters[ind.cell_name][(int(scen[-1]), phase)]['xi'] = \
+		cal_parameters[ind.cell_name][cal_tpl]['xi'] = \
 			res_fit.x[0]
-		cal_parameters[ind.cell_name][(int(scen[-1]), phase)]['mu'] = \
+		cal_parameters[ind.cell_name][cal_tpl]['mu'] = \
 			res_fit.x[1]
 	with open('../Data/calibration/calibration_dict.pickle', 'wb') as handle:
 		pickle.dump(cal_parameters, handle, protocol=pickle.HIGHEST_PROTOCOL)
