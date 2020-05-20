@@ -736,6 +736,7 @@ def create_parameters_f0(ind):
 	f_init = np.zeros(len(list(itertools.product(ind.R.values(), ind.A.values()))))
 	for i in [1, 2, 3]:
 		f_tmp = f_init.copy()
+		f_tmp[:8] = asymp['Scenario ' + str(i)].values[:-1]
 		f_tmp[9:] = asymp['Scenario ' + str(i)].values[:-1]
 		f0_full['Scenario' + str(i)] = expand_partial_array(ind.risk_age_dict,
 															f_tmp, len(ind.N))

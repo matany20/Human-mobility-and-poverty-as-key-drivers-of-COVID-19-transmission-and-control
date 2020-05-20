@@ -510,3 +510,27 @@ def make_casulties_interval(
 		casulties[vent_col] = make_casulties(vents, time_ahead, pop_israel, mu)
 
 	return tuple(casulties.values())
+
+def make_death_interval(
+		ind,
+		res_mdl,
+		time_ahead,
+		pop_israel,
+		death_conf,
+	):
+
+	casulties = {}
+	options = ['pr_death_lb', 'pr_death', 'pr_death_ub']
+	for vent_col in options:
+		chi = expand_partial_array(ind.risk_age_dict,
+								   death_conf[vent_col].values,
+									len(ind.N))
+		deaths = [np.zeros_like(res_mdl['new_Is'][0])]
+		for t in range(len(res_mdl['new_Is'][:time_ahead])):
+			# deaths(t)
+			deaths.append(
+				(chi) * res_mdl['new_Is'][t])
+		deaths = np.array(deaths)
+		casulties[vent_col] = (deaths.sum(axis=1))[:time_ahead].sum()*pop_israel
+
+	return tuple(casulties.values())

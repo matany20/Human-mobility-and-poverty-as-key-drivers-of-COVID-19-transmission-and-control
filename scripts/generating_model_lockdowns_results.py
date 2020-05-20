@@ -40,17 +40,19 @@ parameters_list = [
 #     'ub',
 #     'base',
 #     'lb',
-#     (1,'-'),
+    (1,'-'),
 	(1,29),
 ]
 
 stops_type = [
-	(True, 'all'),
-	(True, 'risk'),
-	(True, 'kid'),
-	(False, 'all'),
-	(False, 'risk'),
-#     (False, 'kid'),
+	# (True, 'all'),
+	# (True, 'risk'),
+	# (True, 'kid'),
+	# (False, 'all'),
+	# (False, 'risk'),
+    # (False, 'kid'),
+	(False, 'kid_risk'),
+	(True, 'kid_risk'),
 ]
 
 threshs = [
