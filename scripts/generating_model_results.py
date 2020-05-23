@@ -14,9 +14,9 @@ import os
 from SEIR_full.indices import *
 from SEIR_full import model_class as mdl
 
-#############################
-# Generating interventions  #
-#############################
+####################################
+# Generating model Single Results  #
+####################################
 ## Must be run after cell parameters set to specific cell division.
 ## Must be run after interventions generator.
 

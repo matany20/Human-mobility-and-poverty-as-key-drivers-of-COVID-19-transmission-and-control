@@ -25,6 +25,9 @@ with open('../Data/parameters/f0_full.pickle', 'rb') as pickle_in:
 # Contact matrix dic
 with open('../Data/parameters/C_calibration.pickle', 'rb') as pickle_in:
 	C_calibration = pickle.load(pickle_in)
+# Contact matrix dic
+with open('../Data/parameters/C_const.pickle', 'rb') as pickle_in:
+	C_const = pickle.load(pickle_in)
 
 # Orthodox distribution
 with open("../Data/parameters/orthodox_dist.pickle", 'rb') as pickle_in:

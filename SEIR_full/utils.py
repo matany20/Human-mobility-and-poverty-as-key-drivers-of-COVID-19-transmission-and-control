@@ -232,6 +232,7 @@ def create_C_mtx_leisure_work(
 	:param stay_home_idx:
 	:return:
 	"""
+	od_mat = od_mat.apply(lambda row: row / row[list(ind.G.values())].sum()).copy()
 	full_C = pd.DataFrame(
 		index=pd.MultiIndex.from_tuples(list(ind.MI.values()),
 										names=['age', 'area', 'age']),

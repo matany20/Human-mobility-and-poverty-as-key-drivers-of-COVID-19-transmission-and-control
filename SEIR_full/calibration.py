@@ -68,18 +68,18 @@ def make_calibration(
 		p0 = (
 		0.04066847, 0.02242699, 0.01883845, 0.10270542, 2.0684200685446243,
 		0.38)  # initial guess
-		bnds = ((0, 1000), (0, 1000), (0, 1000), (0, 1000), (1.5, 3),
+		bnds = ((0, 0.3), (0, 0.2), (0, 0.2), (0, 0.6), (1, 1),
 				(0, 1))  # boundries for variables
 	else:
-		p0 = (0.04066847, 0.02242699, 0.01883845, 0.10270542, 2.0684200685446243,
-			  0.38)  # initial guess
+		# p0 = (0.04066847, 0.02242699, 0.01883845, 0.10270542, 2.0684200685446243,
+		# 	  0.38)  # initial guess
+		p0 = (0.00004066847, 0.00002242699, 0.00001883845, 0.00010270542, 2.0684200685446243,
+			  0.2)  # initial guess
 		bnds = ((0, 0.3), (0, 0.2), (0, 0.2), (0, 0.6), (1.5, 3),
 				(0, 1))  # boundries for variables
 	if no_mobility:
-		C = {}
+		C = C_const
 		sh = {}
-		for key in C_calibration.keys():
-			C[key] = [np.ones_like(C_calibration[key][0])]*len(C_calibration[key])
 		for key in stay_home_idx.keys():
 			sh[key] = [np.ones_like(stay_home_idx[key][0])] * len(
 				stay_home_idx[key])
@@ -372,11 +372,8 @@ def show_calibration_param(
 		phi=phi,
 	)
 	if no_mobility:
-		C = {}
+		C = C_const
 		sh = {}
-		for key in C_calibration.keys():
-			C[key] = [np.ones_like(C_calibration[key][0])] * len(
-				C_calibration[key])
 		for key in stay_home_idx.keys():
 			sh[key] = [np.ones_like(stay_home_idx[key][0])] * len(
 				stay_home_idx[key])
@@ -607,11 +604,8 @@ def show_calibration_track_spec(
 	model.reset()
 
 	if no_mobility:
-		C = {}
+		C = C_const
 		sh = {}
-		for key in C_calibration.keys():
-			C[key] = [np.ones_like(C_calibration[key][0])] * len(
-				C_calibration[key])
 		for key in stay_home_idx.keys():
 			sh[key] = [np.ones_like(stay_home_idx[key][0])] * len(
 				stay_home_idx[key])

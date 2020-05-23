@@ -13,6 +13,7 @@ import sys
 import os
 from SEIR_full.indices import *
 
+
 #############################################
 # Generating parameters files based on tazs #
 #############################################
@@ -487,6 +488,17 @@ def create_full_matices(ind):
 		OD_dict[k] = OD_dict[k].filter(list(ind.G.values()), axis=1)
 		OD_dict[k] = OD_dict[k].filter(list(ind.G.values()), axis=0)
 
+	OD_const = OD_dict['routine', 1]
+	OD_const.loc[:, :] = 1
+
+	############ no_mobility #############
+	full_leisure_const = create_C_mtx_leisure_work(
+		ind=ind,
+		od_mat=OD_const,
+		base_mat=base_leisure,
+		age_dist_area=age_dist_area
+	)
+
 	############ 21.2-14.3 #############
 	full_leisure_routine = create_C_mtx_leisure_work(
 		ind=ind,
@@ -576,6 +588,9 @@ def create_full_matices(ind):
 	scipy.sparse.save_npz(
 		'../Data/base_contact_mtx/full_leisure_back2routine.npz',
 		full_leisure_back2routine)
+	scipy.sparse.save_npz(
+		'../Data/base_contact_mtx/full_leisure_const.npz',
+		full_leisure_const)
 
 	# creating school- work matrix;
 	base_work_school = base_work.copy()
@@ -589,6 +604,15 @@ def create_full_matices(ind):
 	for col in eye_OD.columns:
 		eye_OD[col].values[:] = 0
 	eye_OD.values[tuple([np.arange(eye_OD.shape[0])] * 2)] = 1
+
+	############ no_mobility #############
+	full_work_const = create_C_mtx_leisure_work(
+		ind=ind,
+		od_mat=OD_const,
+		base_mat=base_work_school,
+		age_dist_area=age_dist_area,
+		eye_mat = eye_OD,
+	)
 
 	############ 21.2-14.3 #############
 	full_work_routine = create_C_mtx_leisure_work(
@@ -684,6 +708,8 @@ def create_full_matices(ind):
 						  full_work_release)
 	scipy.sparse.save_npz('../Data/base_contact_mtx/full_work_back2routine.npz',
 						  full_work_back2routine)
+	scipy.sparse.save_npz('../Data/base_contact_mtx/full_work_const.npz',
+						  full_work_const)
 
 	## Home Matices
 	full_home = pd.DataFrame(
@@ -736,7 +762,7 @@ def create_parameters_f0(ind):
 	f_init = np.zeros(len(list(itertools.product(ind.R.values(), ind.A.values()))))
 	for i in [1, 2, 3]:
 		f_tmp = f_init.copy()
-		f_tmp[:8] = asymp['Scenario ' + str(i)].values[:-1]
+		f_tmp[:9] = asymp['Scenario ' + str(i)].values[:-1]
 		f_tmp[9:] = asymp['Scenario ' + str(i)].values[:-1]
 		f0_full['Scenario' + str(i)] = expand_partial_array(ind.risk_age_dict,
 															f_tmp, len(ind.N))
@@ -863,12 +889,24 @@ def create_parameters_C_calibration(ind):
 		'back2routine': scipy.sparse.load_npz(
 			'../Data/base_contact_mtx/full_leisure_back2routine.npz'),
 	}
+
+	full_mtx_const = {
+		'work': scipy.sparse.load_npz(
+			'../Data/base_contact_mtx/full_work_const.npz'),
+		'leisure': scipy.sparse.load_npz(
+			'../Data/base_contact_mtx/full_leisure_const.npz'),
+	}
+
 	C_calibration = {}
+	C_const = {}
 	d_tot = 500
 	# no intervation are null groups
 	home_inter = []
 	work_inter = []
 	leis_inter = []
+
+	work_const = []
+	leis_const = []
 
 	for i in range(d_tot):
 		home_inter.append(
@@ -878,6 +916,9 @@ def create_parameters_C_calibration(ind):
 		leis_inter.append(csr_matrix((full_mtx_leisure['routine'].shape[0],
 										 full_mtx_leisure['routine'].shape[
 											 1])))
+		work_const = full_mtx_const['work']
+		leis_const = full_mtx_const['leisure']
+
 
 	# Intervantion
 	home_no_inter = []
@@ -949,9 +990,18 @@ def create_parameters_C_calibration(ind):
 	C_calibration['work_non'] = work_no_inter
 	C_calibration['leisure_non'] = leis_no_inter
 
+	C_const['home_inter'] = home_no_inter
+	C_const['work_inter'] = work_const
+	C_const['leisure_inter'] = leis_const
+	C_const['home_non'] = home_no_inter
+	C_const['work_non'] = work_const
+	C_const['leisure_non'] = leis_const
+
 	# Save
 	with open('../Data/parameters/C_calibration.pickle', 'wb') as handle:
 		pickle.dump(C_calibration, handle, protocol=pickle.HIGHEST_PROTOCOL)
+	with open('../Data/parameters/C_const.pickle', 'wb') as handle:
+		pickle.dump(C_const, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 
 def create_parameters_is_haredim(ind):

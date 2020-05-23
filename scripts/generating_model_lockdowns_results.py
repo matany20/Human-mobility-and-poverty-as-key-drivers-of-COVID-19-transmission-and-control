@@ -19,9 +19,9 @@ import os
 import time
 from operator import add
 
-#############################
-# Generating interventions  #
-#############################
+#################################
+# Generating Lockdowns Results  #
+#################################
 ## Must be run after cell parameters set to specific cell division.
 ## Must be run after interventions generator.
 
@@ -40,28 +40,37 @@ parameters_list = [
 #     'ub',
 #     'base',
 #     'lb',
-    (1,'-'),
+    (3,'-'),
+	(1,'-'),
 	(1,29),
+	(2,'-'),
+	(2,29),
+# 	(3,60),
+# 	(3,90),
 ]
 
 stops_type = [
-	# (True, 'all'),
+	(True, 'all'),
 	# (True, 'risk'),
 	# (True, 'kid'),
 	# (False, 'all'),
 	# (False, 'risk'),
     # (False, 'kid'),
-	(False, 'kid_risk'),
-	(True, 'kid_risk'),
+	# (False, 'kid_risk'),
+	# (True, 'kid_risk'),
 ]
 
 threshs = [
-	0.1,
-	0.2,
-	0.4,
-	0.6,
-	0.8,
-#     0.5,
+	# 0.1,
+	# 0.175,
+	# 0.25,
+	# 0.5,
+	# 1,
+	# 2,
+	# 3,
+	# 4,
+	# 5,
+	1000,
 ]
 
 start_inter = pd.Timestamp('2020-05-08')
@@ -76,6 +85,8 @@ policy_params_general = {
 	'max_duration': 100,
 	'threshold': 0.5,
 }
+policy_params_general['weight_matrix'] = np.zeros([4,9])
+policy_params_general['weight_matrix'][1][:] = 1
 
 start_inter = pd.Timestamp('2020-05-08')
 beginning = pd.Timestamp('2020-02-20')
@@ -97,10 +108,10 @@ for scen_idx, phase in cal_parameters.keys():
 		beta_j=cal_parameters[(scen_idx, phase)]['beta_j'],
 		theta=cal_parameters[(scen_idx, phase)]['theta'],
 		beta_behave=cal_parameters[(scen_idx, phase)]['beta_behave'],
-		mu=cal_parameters[(scen_idx, phase)]['mu'],
-		nu=cal_parameters[(scen_idx, phase)]['nu'],
-		eta=cal_parameters[(scen_idx, phase)]['eta'],
-		xi=cal_parameters[(scen_idx, phase)]['xi'],
+		# mu=cal_parameters[(scen_idx, phase)]['mu'],
+		# nu=cal_parameters[(scen_idx, phase)]['nu'],
+		# eta=cal_parameters[(scen_idx, phase)]['eta'],
+		# xi=cal_parameters[(scen_idx, phase)]['xi'],
 		scen=mdl.num2scen(scen_idx),
 		seasonality=seasonality,
 		phi=phi,
