@@ -29,10 +29,6 @@ from operator import add
 with (open('../Data/parameters/indices.pickle', 'rb')) as openfile:
 	ind = pickle.load(openfile)
 
-make_spec_plots = False
-make_summ_plots = True
-base_thresh = 1000
-
 parameters_list = [
 #     '70%',
 #     '75%',
@@ -40,31 +36,37 @@ parameters_list = [
 #     'ub',
 #     'base',
 #     'lb',
-    (3,'-'),
-	(1,'-'),
-	(1,29),
-	(2,'-'),
-	(2,29),
+#     (3,'-'),
+# 	(1,'-'),
+# 	(1,29),
+# 	(2,'-'),
+# 	(2,29),
 # 	(3,60),
 # 	(3,90),
+	(1, 60),
+	(2, 60),
+	(3, 60),
+	(1, -1),
+	(2, -1),
+	(3, -1),
 ]
 
 stops_type = [
 	(True, 'all'),
 	# (True, 'risk'),
 	# (True, 'kid'),
-	# (False, 'all'),
-	# (False, 'risk'),
-    # (False, 'kid'),
+	(False, 'all'),
+	(False, 'risk'),
+    (False, 'kid'),
 	# (False, 'kid_risk'),
 	# (True, 'kid_risk'),
 ]
 
 threshs = [
-	# 0.1,
+	0.1,
 	# 0.175,
 	# 0.25,
-	# 0.5,
+	0.5,
 	# 1,
 	# 2,
 	# 3,
