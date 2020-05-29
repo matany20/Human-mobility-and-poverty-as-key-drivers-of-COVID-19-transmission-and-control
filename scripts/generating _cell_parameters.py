@@ -760,7 +760,7 @@ def create_parameters_f0(ind):
 
 	# asymptomatic with risk group, high risk with 0
 	f_init = np.zeros(len(list(itertools.product(ind.R.values(), ind.A.values()))))
-	for i in [1, 2, 3]:
+	for i in [1, 2, 3, 4]:
 		f_tmp = f_init.copy()
 		f_tmp[:9] = asymp['Scenario ' + str(i)].values[:-1]
 		f_tmp[9:] = asymp['Scenario ' + str(i)].values[:-1]
@@ -786,7 +786,7 @@ def create_parameters_eps_by_region_prop(ind, age_dist):
 	eps_t = {}
 	init_I_IL = {}
 	init_I_dis = {}
-	for i in [1, 2, 3]:
+	for i in [1, 2, 3, 4]:
 		scen = 'Scenario' + str(i)
 		f_init_i = f_init[scen][:(len(ind.R) * len(ind.A))]
 		init_I_IL[scen] = (491. / (1 - asymp['Scenario ' + str(i)].values[-1])) / isr_pop

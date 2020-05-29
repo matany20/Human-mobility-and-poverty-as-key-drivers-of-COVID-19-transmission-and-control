@@ -25,8 +25,8 @@ import copy
 with (open('../Data/parameters/indices.pickle', 'rb')) as openfile:
 	ind = pickle.load(openfile)
 
-for scen in [mdl.num2scen(i) for i in [1,2,3]]:
-	for phase in [-1]:
+for scen in [mdl.num2scen(i) for i in [4]]:
+	for phase in [60]:
 		#         mdl.show_calibration(
 		#             ind,
 		#             int(scen[-1]),
