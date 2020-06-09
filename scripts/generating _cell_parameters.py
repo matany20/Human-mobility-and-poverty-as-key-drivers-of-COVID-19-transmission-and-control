@@ -916,8 +916,8 @@ def create_parameters_C_calibration(ind):
 		leis_inter.append(csr_matrix((full_mtx_leisure['routine'].shape[0],
 										 full_mtx_leisure['routine'].shape[
 											 1])))
-		work_const = full_mtx_const['work']
-		leis_const = full_mtx_const['leisure']
+		work_const.append(full_mtx_const['work'])
+		leis_const.append(full_mtx_const['leisure'])
 
 
 	# Intervantion
