@@ -35,9 +35,11 @@ class Model_behave:
 			mu=mu,
 			eta=eta,
 			xi=xi,
-			eps=eps,
+			scen='Scenario1',
+			eps=eps_sector,
 			f=f0_full,
 			seasonality=False,
+			phi=None,
 			# e_stage=3
 	):
 		"""
@@ -83,12 +85,14 @@ class Model_behave:
 		self.rho = rho
 		self.nu = nu
 		self.sigma = sigma
+		self.scen = scen
 		self.eps = eps
 		self.f = f
 		self.chi = chi
 		self.mu = mu
 		self.eta = eta
 		self.xi = xi
+		self.phi=phi
 		self.population_size = population_size.copy()
 		# self.e_stage = e_stage
 
@@ -101,10 +105,14 @@ class Model_behave:
 		# seasonality parameters:
 		if seasonality:
 			self.seasonality = 1
-			self.phi = 29.0
-			self.noise = 2./9136000
+			self.noise = 0.1/pop_israel
+			if phi is None:
+				self.phi = 29.0
+			else:
+				self.phi = phi
 		else:
 			self.seasonality = 0
+			self.phi = 0
 			self.noise = 0.0
 
 	def reset(
@@ -139,7 +147,7 @@ class Model_behave:
 
 		# Initialize E
 		# self.E.append(np.zeros((len(self.ind.N),self.e_stage)))
-		self.E.append(np.zeros((len(self.ind.N))))
+		self.E.append(np.zeros(len(self.ind.N)))
 
 		# Initialize I (early)
 		self.Ie.append(np.zeros(len(self.ind.N)))
@@ -151,7 +159,8 @@ class Model_behave:
 		self.Is.append(np.zeros(len(self.ind.N)))
 
 		# Subtract E(0) and Ie(0) from S(0)
-		self.S[-1] -= (self.E[-1].sum(axis=1) + self.Ie[-1])
+		# self.S[-1] -= (self.E[-1].sum(axis=1) + self.Ie[-1])
+		self.S[-1] -= (self.E[-1] + self.Ie[-1])
 
 		# Zero newly infected on the first day of the season
 		self.new_Is.append(np.zeros(len(self.ind.N)))
@@ -171,7 +180,6 @@ class Model_behave:
 			bnds,
 			data,
 			C=C_calibration,
-			days_in_season=70,
 			stay_home_idx=stay_home_idx,
 			not_routine=not_routine,
 			method='TNC',
@@ -195,7 +203,6 @@ class Model_behave:
 			args=(
 				data,
 				C,
-				days_in_season,
 				stay_home_idx,
 				not_routine,
 				date_lst,
@@ -415,7 +422,6 @@ class Model_behave:
 			tpl,
 			data,
 			C,
-			days_in_season,
 			stay_home_idx,
 			not_routine,
 			date_lst=pd.date_range('2020-02-20',periods=70, freq='d'),
@@ -430,7 +436,6 @@ class Model_behave:
 		:param self:
 		:param tpl:
 		:param C:
-		:param days_in_season:
 		:param stay_home_idx:
 		:param not_routine:
 		:param date_lst:
@@ -449,11 +454,11 @@ class Model_behave:
 		# Run model with given parameters
 		model_res = self.predict(
 			C=C,
-			days_in_season=days_in_season,
+			days_in_season=len(date_lst),
 			stay_home_idx=stay_home_idx,
 			not_routine=not_routine,
 			beta_j=beta_j,
-			beta_behave=tpl[6],
+			beta_behave=tpl[5],
 			theta=tpl[4],
 			# theta_arab=tpl[5]
 		)
@@ -465,14 +470,14 @@ class Model_behave:
 		# 	print('beta_behave: ', tpl[5])
 		# 	print('theta: ', tpl[4])
 		if mapper == None:
-			model_results_cal = np.zeros((days_in_season + 1, len(self.ind.region_age_dict)))
+			model_results_cal = np.zeros((len(date_lst) + 1, len(self.ind.region_age_dict)))
 
 			# Calculated total symptomatic (high+low) per age group (adding as columns)
 			for i, key in enumerate(self.ind.region_age_dict.keys()):
 				model_results_cal[:, i] = new_cases_model[:, self.ind.region_age_dict[key]].sum(axis=1)
 
 		else:
-			model_results_cal = np.zeros((days_in_season + 1, len(mapper)))
+			model_results_cal = np.zeros((len(date_lst) + 1, len(mapper)))
 
 			# Calculated total symptomatic (high+low) per age group (adding as columns)
 			for i, key in enumerate(mapper.keys()):
@@ -527,6 +532,8 @@ class Model_behave:
 		self.reset()
 		if self.fit_iter_count % 50 == 0:
 			print('iter: ', self.fit_iter_count,' loss: ', loss)
+			print('curr param: BETAj:', tpl[0],' ', tpl[1],' ', tpl[2],' ', tpl[3],' ',
+				  'THETA:', tpl[4], ' ', 'BEHAVE:', tpl[5])
 		return loss
 
 
@@ -546,7 +553,9 @@ class Model_behave:
 			days_in_season,
 			stay_home_idx,
 			not_routine,
+			start=0,
 			prop_dict=None,
+			start_date='2020-02-20'
 		):
 		"""
 		Receives  model's parameters and run intervention for days_in_season days
@@ -566,13 +575,14 @@ class Model_behave:
 			self.Is.append(divide_population(self.ind, prop_dict, self.Is.pop()))
 			self.R.append(divide_population(self.ind, prop_dict, self.R.pop()))
 		# make sure no new sick will pop up during intervention
-		self.eps = np.zeros((days_in_season, len(self.ind.N)))
+		self.eps[self.scen] = np.zeros((days_in_season, len(self.ind.N)))
 
 		return self.predict(
 			C=C,
 			days_in_season=days_in_season,
 			stay_home_idx=stay_home_idx,
 			not_routine=not_routine,
+			start=start,
 		)
 
 
@@ -582,6 +592,7 @@ class Model_behave:
 			days_in_season,
 			stay_home_idx,
 			not_routine,
+			start=0,
 			beta_j=None,
 			beta_behave=None,
 			theta=None,
@@ -632,7 +643,7 @@ class Model_behave:
 			size=len(self.ind.GA)
 		)
 
-		for t in range(days_in_season):
+		for t in start+np.arange(days_in_season):
 
 			# Calculate beta_home factor, current S_region/N_region and expand it
 			# to mach (180X1).
@@ -649,34 +660,38 @@ class Model_behave:
 
 			# Calculate lambda (High risk symptomatic + Low risk symptomatic +
 			# Asymptomatic)
-			contact_force = self.calculate_force_matriceis(
+			contact_force = self.calculate_force_matrices(
 				t=t,
 				C=C,
 				beta_behave=beta_behave,
-				stay_home_idx=stay_home_idx,
 				not_routine=not_routine,
 			)
-			lambda_t = self.noise + (self.beta_home * beta_home_factor * contact_force['home'] +
+			lambda_t = self.noise/float(len(self.ind.GA)) + (self.beta_home * beta_home_factor * contact_force['home'] +
 					   beta_j * (theta * self.is_haredi + theta_arab * self.is_arab +
 								 (1 - self.is_haredi - self.is_arab)) * contact_force['out']) * \
 					   ((np.maximum(0, 1 + np.cos((2 * np.pi * (t + self.phi)) / 365.0))) ** self.seasonality)
-
-			# print((np.maximum(0, 1 + np.cos((2 * np.pi * (t - self.phi)) / days_in_season))) ** self.seasonality)
-
-			# preventing from lambda to become nan where there is no population.
-			#lambda_t[np.isnan(lambda_t)] = 0
-
-			self.L.append(lambda_t)
-			self.L_home.append((self.beta_home * beta_home_factor * contact_force['home']) * \
-					   ((np.maximum(0, 1 + np.cos((2 * np.pi * (t + self.phi)) / 365.0))) ** self.seasonality)
-)
-
-			# fitting lambda_t size to (720X1)
+			lambda_t_home = (self.beta_home * beta_home_factor * contact_force[
+				'home']) * \
+							((np.maximum(0, 1 + np.cos((2 * np.pi * (
+									t + self.phi)) / 365.0))) ** self.seasonality)
 			lambda_t = expand_partial_array(
 				mapping_dic=self.ind.region_age_dict,
 				array_to_expand=lambda_t,
 				size=len(self.ind.N),
 			)
+			lambda_t_home = expand_partial_array(
+				mapping_dic=self.ind.region_age_dict,
+				array_to_expand=lambda_t_home,
+				size=len(self.ind.N),
+			)
+
+			# multiplying by mobility
+			for inter in self.ind.M.values():
+				lambda_t[self.ind.inter_dict[inter]] *= stay_home_idx[inter][t]
+				lambda_t_home[self.ind.inter_dict[inter]] *= stay_home_idx[inter][t]
+
+			self.L.append(lambda_t)
+			self.L_home.append(lambda_t_home)
 
 			# R(t)
 			self.R.append(self.R[-1] + self.gama * (self.Is[-1] + self.Ia[-1]))
@@ -697,18 +712,21 @@ class Model_behave:
 
 			# Is(t)
 			# Save new_Is
-			self.new_Is.append((1 - self.f) * self.delta * self.Ie[-1])
+			self.new_Is.append((1 - self.f[self.scen]) * self.delta * self.Ie[-1])
 
 			# Calculate new i matrix for day t
 			self.Is.append(self.Is[-1] + self.new_Is[-1] - self.gama * self.Is[-1])
 
 			# Ia(t)
 			# Calculate new i matrix for day t
-			self.Ia.append(self.Ia[-1] + self.f * self.delta * self.Ie[-1] - self.gama * self.Ia[-1])
+			self.Ia.append(self.Ia[-1] + self.f[self.scen] * self.delta * self.Ie[-1] - self.gama * self.Ia[-1])
 
 			# Ie(t)
 			# Calculate new i matrix for day t
-			self.Ie.append(self.Ie[-1] + self.sigma * self.E[-1][:, -1] - self.delta * self.Ie[-1])
+			# self.Ie.append(self.Ie[-1] + self.sigma * self.E[-1][:, -1] - self.delta * self.Ie[-1])
+			self.Ie.append(
+				self.Ie[-1] + self.sigma * self.E[-1] - self.delta *
+				self.Ie[-1])
 
 			# E(t)
 			# Calculate new e matrix for day t
@@ -717,7 +735,7 @@ class Model_behave:
 			# new_E_mtx[:, -1] = self.E[-1][:, -1] + self.E[-1][:, -2] - self.sigma * self.E[-1][:, -1]
 			# new_E_mtx[:, 1:-1] = self.E[-1][:, :-2]
 			# self.E.append(new_E_mtx)
-			self.E.append(self.E[-1] + self.eps[t] + lambda_t * self.S[-1] - self.sigma * self.E[-1])
+			self.E.append(self.E[-1] + self.eps[self.scen][t-start] + lambda_t * self.S[-1] - self.sigma * self.E[-1])
 
 			# S(t)
 			# Calculate current S
@@ -756,31 +774,47 @@ class Model_behave:
 			'Vents_latent': np.array(self.Vents_latent),
 		}
 
-	def calculate_force_matriceis(
+	def calculate_force_matrices(
 			self,
 			t,
 			C,
-			stay_home_idx,
 			not_routine,
 			beta_behave,
 		):
 		# Calculating beta_behave components:
-		behave_componnet_inter_no_work = \
-			np.power(beta_behave * stay_home_idx['inter']['not_work'][t],
-					 not_routine['inter']['not_work'][t])
+		# behave_componnet_inter_no_work = \
+		# 	np.power(beta_behave * stay_home_idx['inter']['not_work'][t],
+		# 			 not_routine['inter']['not_work'][t])
+		#
+		# behave_componnet_non_no_work = \
+		# 	np.power(beta_behave * stay_home_idx['non_inter']['not_work'][t],
+		# 			 not_routine['non_inter']['not_work'][t])
+		#
+		# behave_componnet_inter_work = \
+		# 	np.power(beta_behave * stay_home_idx['inter']['work'][t],
+		# 			 not_routine['inter']['work'][t])
+		#
+		# behave_componnet_non_work = \
+		# 	np.power(beta_behave * stay_home_idx['non_inter']['work'][t],
+		# 			 not_routine['non_inter']['work'][t])
+		behave_component_inter_no_work = np.power(
+			beta_behave,
+			not_routine['Intervention']['not_work'][t],
+		)
+		behave_component_non_no_work = np.power(
+			beta_behave,
+			not_routine['Non-intervention']['not_work'][t],
+		)
+		behave_component_inter_work = np.power(
+			beta_behave,
+			not_routine['Intervention']['work'][t],
+		)
+		behave_component_non_work = np.power(
+			beta_behave,
+			not_routine['Non-intervention']['work'][t],
+		)
 
-		behave_componnet_non_no_work = \
-			np.power(beta_behave * stay_home_idx['non_inter']['not_work'][t],
-					 not_routine['non_inter']['not_work'][t])
-
-		behave_componnet_inter_work = \
-			np.power(beta_behave * stay_home_idx['inter']['work'][t],
-					 not_routine['inter']['work'][t])
-
-		behave_componnet_non_work = \
-			np.power(beta_behave * stay_home_idx['non_inter']['work'][t],
-					 not_routine['non_inter']['work'][t])
-		force_home = ((behave_componnet_inter_no_work * \
+		force_home = ((behave_component_inter_no_work * \
 					   (C['home_inter'][t].T.dot((self.Ie[-1][self.ind.inter_risk_dict['Intervention', 'Low']] +
 												self.Ie[-1][self.ind.inter_risk_dict['Intervention', 'High']]) * self.alpha +
 												self.Is[-1][self.ind.inter_risk_dict['Intervention', 'Low']] +
@@ -788,7 +822,7 @@ class Model_behave:
 												self.Ia[-1][self.ind.inter_risk_dict['Intervention', 'Low']] +
 												self.Ia[-1][self.ind.inter_risk_dict['Intervention', 'High']])).reshape(-1)) +
 
-					(behave_componnet_non_no_work * \
+					(behave_component_non_no_work * \
 					(C['home_non'][t].T.dot((self.Ie[-1][self.ind.inter_risk_dict['Non-intervention', 'Low']] +
 											self.Ie[-1][self.ind.inter_risk_dict['Non-intervention', 'High']]) * self.alpha +
 											self.Is[-1][self.ind.inter_risk_dict['Non-intervention', 'Low']] +
@@ -796,7 +830,7 @@ class Model_behave:
 											self.Ia[-1][self.ind.inter_risk_dict['Non-intervention', 'Low']] +
 											self.Ia[-1][self.ind.inter_risk_dict['Non-intervention', 'High']])).reshape(-1)))
 
-		force_out = ((behave_componnet_inter_work * \
+		force_out = ((behave_component_inter_work * \
 					C['work_inter'][t].T.dot((self.Ie[-1][self.ind.inter_risk_dict['Intervention', 'Low']] +
 											self.Ie[-1][self.ind.inter_risk_dict['Intervention', 'High']]) * self.alpha +
 											self.Is[-1][self.ind.inter_risk_dict['Intervention', 'Low']] +
@@ -804,7 +838,7 @@ class Model_behave:
 											self.Ia[-1][self.ind.inter_risk_dict['Intervention', 'Low']] +
 											self.Ia[-1][self.ind.inter_risk_dict['Intervention', 'High']]) +
 
-					(behave_componnet_non_work * \
+					(behave_component_non_work * \
 					C['work_non'][t].T.dot((self.Ie[-1][self.ind.inter_risk_dict['Non-intervention', 'Low']] +
 											self.Ie[-1][self.ind.inter_risk_dict['Non-intervention', 'High']]) * self.alpha +
 											self.Is[-1][self.ind.inter_risk_dict['Non-intervention', 'Low']] +
@@ -812,7 +846,7 @@ class Model_behave:
 											self.Ia[-1][self.ind.inter_risk_dict['Non-intervention', 'Low']] +
 											self.Ia[-1][self.ind.inter_risk_dict['Non-intervention', 'High']])) +
 
-					(behave_componnet_inter_no_work * \
+					(behave_component_inter_no_work * \
 					C['leisure_inter'][t].T.dot((self.Ie[-1][self.ind.inter_risk_dict['Intervention', 'Low']] +
 												self.Ie[-1][self.ind.inter_risk_dict['Intervention', 'High']]) * self.alpha +
 												self.Is[-1][self.ind.inter_risk_dict['Intervention', 'Low']] +
@@ -820,7 +854,7 @@ class Model_behave:
 												self.Ia[-1][self.ind.inter_risk_dict['Intervention', 'Low']] +
 												self.Ia[-1][self.ind.inter_risk_dict['Intervention', 'High']])) +
 
-					(behave_componnet_non_no_work * \
+					(behave_component_non_no_work * \
 					C['leisure_non'][t].T.dot((self.Ie[-1][self.ind.inter_risk_dict['Non-intervention', 'Low']] +
 												self.Ie[-1][self.ind.inter_risk_dict['Non-intervention', 'High']]) * self.alpha +
 												self.Is[-1][self.ind.inter_risk_dict['Non-intervention', 'Low']] +

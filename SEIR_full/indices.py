@@ -38,7 +38,10 @@ class Indices:
 		self.N = {}
 		self.GA = {}
 		self.MI = {}
+		self.GRA = {}
 		self.inter_dict = {}
+		self.region_gra_dict = {}
+		self.age_gra_dict = {}
 		self.risk_dict = {}
 		self.region_age_dict = {}
 		self.inter_region_risk_age_dict = {}
@@ -49,6 +52,7 @@ class Indices:
 		self.age_ga_dict = {}
 		self.region_dict = {}
 		self.region_ga_dict = {}
+		self.region_risk_dict = {}
 		self.make_new_indices()
 
 
@@ -101,6 +105,25 @@ class Indices:
 			))
 		}
 
+		self.GRA = {
+			i: group for
+			i, group in
+			enumerate(itertools.product(
+				self.G.values(),
+				self.R.values(),
+				self.A.values(),
+			))
+		}
+
+		self.region_gra_dict = get_opposite_dict(
+			self.GRA,
+			[[x] for x in list(self.G.values())],
+		)
+
+		self.age_gra_dict = get_opposite_dict(
+			self.GRA,
+			[[x] for x in list(self.A.values())],
+		)
 
 		# Opposite indices dictionaries:
 		self.inter_dict = get_opposite_dict(
@@ -158,6 +181,14 @@ class Indices:
 			list(itertools.product(
 				self.R.values(),
 				self.A.values(),
+			)),
+		)
+
+		self.region_risk_dict = get_opposite_dict(
+			self.N,
+			list(itertools.product(
+				self.G.values(),
+				self.R.values(),
 			)),
 		)
 

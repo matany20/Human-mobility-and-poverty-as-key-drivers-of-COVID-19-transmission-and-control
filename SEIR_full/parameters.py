@@ -25,6 +25,9 @@ with open('../Data/parameters/f0_full.pickle', 'rb') as pickle_in:
 # Contact matrix dic
 with open('../Data/parameters/C_calibration.pickle', 'rb') as pickle_in:
 	C_calibration = pickle.load(pickle_in)
+# Contact matrix dic
+with open('../Data/parameters/C_const.pickle', 'rb') as pickle_in:
+	C_const = pickle.load(pickle_in)
 
 # Orthodox distribution
 with open("../Data/parameters/orthodox_dist.pickle", 'rb') as pickle_in:
@@ -45,10 +48,6 @@ with open('../Data/parameters/routine_t.pickle', 'rb') as pickle_in:
 # Population size
 with open('../Data/parameters/init_pop.pickle', 'rb') as pickle_in:
 	population_size = pickle.load(pickle_in)
-
-# Epsilon (small noise) - only for non-zero population groups
-with open('../Data/parameters/eps_dict.pickle', 'rb') as pickle_in:
-	eps = pickle.load(pickle_in)
 
 # esp - model without sectors
 with open('../Data/parameters/eps_by_region.pickle', 'rb') as pickle_in:
