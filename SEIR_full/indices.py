@@ -1,74 +1,182 @@
 import itertools
 import numpy as np
-
-def get_opposite_dict(dic, keys):
-    """The function gets a dict and new keys list and returns a dictionary in which keys as keys,
-    and values are the keys from dic """
-    res_dict = {}
-
-    for new_key in keys:
-        new_val_lst = []
-        for old_k, old_v in dic.items():
-            if all(i in old_v for i in new_key):
-                new_val_lst.append(old_k)
-        if len(new_key) == 1:
-            res_dict[new_key[0]] = new_val_lst
-        else:
-            res_dict[new_key] = new_val_lst
-    return res_dict
+import pandas as pd
+from .utils import *
 
 
-def expand_partial_array(mapping_dic, array_to_expand, size=720):
-    """The function gets mapping_dic - indeces to assign in the expanded array (with key granularity based on
-    array_to_expand), and array_to_expand - the expanded array's values will be based on this array. Returns
-    and expanded array shape (len(N),1) based on the array_to_expand"""
+class Indices:
 
-    # Creating dictionary that maps the indices in the array to expand
-    #     small_mapping_dic = {k:v[0] for k,v in mapping_dic.items()}
+	def __init__(self, cell_name='20'):
 
-    # Assigning values to the full array
-    full_array = np.zeros(size)
-    for i, k in enumerate(mapping_dic.keys()):
-        full_array[mapping_dic[k]] = array_to_expand[i]
+		self.cell_name = cell_name
+		# Age groups
+		self.A = {
+			0: '0-4',
+			1: '5-9',
+			2: '10-19',
+			3: '20-29',
+			4: '30-39',
+			5: '40-49',
+			6: '50-59',
+			7: '60-69',
+			8: '70+',
+		}
 
-    return full_array
+		# Risk groups
+		self.R = {
+			0: 'High',
+			1: 'Low',
+		}
+
+		# Intervention groups
+		self.M = {
+			0: 'Intervention',
+			1: 'Non-intervention',
+		}
+		self.cell = {}
+		self.G = {}
+		self.N = {}
+		self.GA = {}
+		self.MI = {}
+		self.inter_dict = {}
+		self.risk_dict = {}
+		self.region_age_dict = {}
+		self.inter_region_risk_age_dict = {}
+		self.region_risk_age_dict = {}
+		self.inter_risk_dict = {}
+		self.age_dict = {}
+		self.risk_age_dict = {}
+		self.age_ga_dict = {}
+		self.region_dict = {}
+		self.region_ga_dict = {}
+		self.make_new_indices()
 
 
-#######################
-# --- Set indices --- #
-#######################
+	def make_new_indices(self, empty_list=None):
+		#define cells
+		self.cell = pd.read_excel(
+			'../Data/division_choice/' + self.cell_name + '/cell2name.xlsx')
+		self.cell['cell_id'] = self.cell['cell_id'].astype(str)
 
-# Age groups
-A = {0: '0-4', 1: '5-9', 2: '10-19', 3: '20-29', 4: '30-39', 5: '40-49', 6: '50-59', 7: '60-69', 8: '70+'}
+		# remove empty cells from indices
+		if not(empty_list is None):
+			self.cell = self.cell[
+				self.cell['cell_id'].apply(lambda x: x not in empty_list.values)]
+		# set area indices
+		self.G = {i: str(k) for i, k in enumerate(list(self.cell['cell_id'].values))}
+		# set cell names dict
+		self.cell.set_index('cell_id', inplace=True)
+		self.cell.index = self.cell.index.astype(str)
+		self.cell = self.cell.to_dict()['cell_name']
 
-# Risk groups
-R = {0: 'High', 1: 'Low'}
+		# All combination:
+		self.N = {
+			i: group for
+			i, group in
+			enumerate(itertools.product(
+				self.M.values(),
+				self.G.values(),
+				self.R.values(),
+				self.A.values(),
+			))
+		}
 
-# Intervention groups
-M = {0: 'Intervention', 1: 'Non-intervention'}
+		# Region and age combination - for beta_j
+		self.GA = {
+			i: group for
+			i, group in
+			enumerate(itertools.product(
+				self.G.values(),
+				self.A.values(),
+			))
+		}
 
-# region groups
-G = {0: '11', 1: '11_betshemesh', 2: '21', 3: '22', 4: '23', 5: '24', 6: '29', 7: '31', 8: '32', 9: '41', 10: '42', 11: '43', 12: '44', 13: '51',
-     14: '51_tlv', 15: '51_bb', 16: '61', 17: '62', 18: '62_arab', 19: '71'}
+		self.MI = {
+			i: group for
+			i, group in
+			enumerate(itertools.product(
+				self.A.values(),
+				self.G.values(),
+				self.A.values(),
+			))
+		}
 
-# All combination:
-N = {i: group for i, group in enumerate(itertools.product(M.values(), G.values(), R.values(), A.values()))}
 
-# Region and age combination - for bea_j
-GA = {i: group for i, group in enumerate(itertools.product(G.values(),A.values()))}
+		# Opposite indices dictionaries:
+		self.inter_dict = get_opposite_dict(
+			self.N,
+			[[x] for x in list(self.M.values())],
+		)
 
-# Opposite indices dictionaries:
-inter_dict = get_opposite_dict(N, [['Intervention'], ['Non-intervention']])
-risk_dict = get_opposite_dict(N, [['High'], ['Low']])
-region_age_dict = get_opposite_dict(N,list(itertools.product(G.values(), A.values())))
-inter_risk_dict = get_opposite_dict(N,list(itertools.product(M.values(), R.values())))
-age_dict = get_opposite_dict(N, [['0-4'], ['5-9'], ['10-19'], ['20-29'], ['30-39'], ['40-49'], ['50-59'], ['60-69'], ['70+']])
-risk_age_dict = get_opposite_dict(N,list(itertools.product(R.values(), A.values())))
-age_ga_dict = get_opposite_dict(GA, [['0-4'], ['5-9'], ['10-19'], ['20-29'], ['30-39'], ['40-49'], ['50-59'], ['60-69'], ['70+']])
-region_dict = get_opposite_dict(N, [['11'], ['11_betshemesh'], ['21'], ['22'], ['23'], ['24'],
-                                               ['29'], ['31'], ['32'], ['41'], ['42'], ['43'], ['44'], ['51'],
-                                               ['51_tlv'], ['51_bb'], ['61'], ['62'], ['62_arab'], ['71']])
+		self.risk_dict = get_opposite_dict(
+			self.N,
+			[[x] for x in list(self.R.values())],
+		)
 
-region_ga_dict = get_opposite_dict(GA, [['11'], ['11_betshemesh'], ['21'], ['22'], ['23'], ['24'],
-                                               ['29'], ['31'], ['32'], ['41'], ['42'], ['43'], ['44'], ['51'],
-                                               ['51_tlv'], ['51_bb'], ['61'], ['62'], ['62_arab'], ['71']])
+		self.region_age_dict = get_opposite_dict(
+			self.N,
+			list(itertools.product(
+				self.G.values(),
+				self.A.values(),
+			)),
+		)
+
+		self.inter_region_risk_age_dict = get_opposite_dict(
+			self.N,
+			list(itertools.product(
+				self.M.values(),
+				self.G.values(),
+				self.R.values(),
+				self.A.values(),
+			))
+		)
+
+		self.region_risk_age_dict = get_opposite_dict(
+			self.N,
+			list(itertools.product(
+				self.G.values(),
+				self.R.values(),
+				self.A.values(),
+			))
+		)
+
+		self.inter_risk_dict = get_opposite_dict(
+			self.N,
+			list(itertools.product(
+				self.M.values(),
+				self.R.values(),
+			)),
+		)
+
+		self.age_dict = get_opposite_dict(
+			self.N,
+			[[x] for x in list(self.A.values())],
+		)
+
+		self.risk_age_dict = get_opposite_dict(
+			self.N,
+			list(itertools.product(
+				self.R.values(),
+				self.A.values(),
+			)),
+		)
+
+		self.age_ga_dict = get_opposite_dict(
+			self.GA,
+			[[x] for x in list(self.A.values())],
+		)
+
+		self.region_dict = get_opposite_dict(
+			self.N,
+			[[x] for x in list(self.G.values())],
+		)
+
+		self.region_ga_dict = get_opposite_dict(
+			self.GA,
+			[[x] for x in list(self.G.values())],
+		)
+
+	def update_empty(self):
+		empty_cells = pd.read_csv('../Data/demograph/empty_cells.csv')[
+			'cell_id'].astype(str)
+		self.make_new_indices(empty_cells)

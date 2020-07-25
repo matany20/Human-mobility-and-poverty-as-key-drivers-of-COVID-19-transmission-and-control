@@ -9,7 +9,7 @@ __pycache__/
 # Distribution / packaging
 .Python
 build/
-Data/Parameters/
+.idea/
 develop-eggs/
 dist/
 downloads/
@@ -128,3 +128,15 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# specific Data folders
+Data/Parameters/
+Data/Parameters_matan/
+Data/demograph_matan/
+Data/demograph/
+Data/base_contact_mtx_matan/
+Data/base_contact_mtx/
+Data/stay_home/
+Data/stay_home_matan/
+Data/results/
+Data/interventions/C_inter_250\@50_noschool_kid010.pickle
